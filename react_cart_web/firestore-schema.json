@@ -1,0 +1,315 @@
+{
+  "_comment": "Firestore Collections Structure for E-Commerce App",
+  "_collections": {
+    "users": {
+      "_description": "เก็บข้อมูลผู้ใช้งาน",
+      "_example": {
+        "userId": {
+          "userId": "string (UID from Firebase Auth)",
+          "email": "string (unique)",
+          "username": "string",
+          "firstName": "string",
+          "lastName": "string",
+          "phone": "string",
+          "profileImage": "string (URL)",
+          "createdAt": "timestamp",
+          "updatedAt": "timestamp",
+          "address": {
+            "street": "string",
+            "district": "string",
+            "province": "string",
+            "postalCode": "string",
+            "country": "string"
+          },
+          "role": "customer | admin",
+          "status": "active | suspended | inactive",
+          "preferences": {
+            "currency": "THB",
+            "language": "th | en",
+            "notifications": "boolean"
+          }
+        }
+      }
+    },
+    "products": {
+      "_description": "เก็บข้อมูลสินค้า",
+      "_example": {
+        "productId": {
+          "productId": "string",
+          "name": "string",
+          "description": "string",
+          "category": "string",
+          "subcategory": "string",
+          "price": "number (ราคาปัจจุบัน)",
+          "originalPrice": "number (ราคาเดิม)",
+          "currency": "THB",
+          "stock": "number",
+          "status": "active | inactive | discontinued",
+          "images": ["string (URL array)"],
+          "specifications": {
+            "brand": "string",
+            "color": "string",
+            "model": "string"
+          },
+          "rating": "number (0-5)",
+          "reviewCount": "number",
+          "tags": ["string array"],
+          "sku": "string (unique)",
+          "supplier": "string (supplierId)",
+          "createdAt": "timestamp",
+          "updatedAt": "timestamp"
+        }
+      }
+    },
+    "carts": {
+      "_description": "เก็บข้อมูลตะกร้าสินค้า",
+      "_note": "สามารถใช้ Sub-collection ภายใต้ users ได้",
+      "_example": {
+        "cart_userId": {
+          "cartId": "string",
+          "userId": "string (FK -> users)",
+          "items": [
+            {
+              "productId": "string",
+              "name": "string",
+              "price": "number",
+              "quantity": "number",
+              "image": "string (URL)",
+              "specifications": {
+                "color": "string",
+                "size": "string"
+              },
+              "addedAt": "timestamp",
+              "subtotal": "number"
+            }
+          ],
+          "totalItems": "number",
+          "totalPrice": "number",
+          "lastUpdated": "timestamp"
+        }
+      }
+    },
+    "whitelists": {
+      "_description": "เก็บรายการสินค้าที่ชอบ (Wishlist)",
+      "_example": {
+        "wishlist_userId": {
+          "whitelistId": "string",
+          "userId": "string (FK -> users)",
+          "items": [
+            {
+              "productId": "string",
+              "name": "string",
+              "price": "number",
+              "image": "string (URL)",
+              "addedAt": "timestamp",
+              "notes": "string (optional)"
+            }
+          ],
+          "totalItems": "number",
+          "createdAt": "timestamp",
+          "updatedAt": "timestamp"
+        }
+      }
+    },
+    "orders": {
+      "_description": "เก็บข้อมูลรายการสั่งซื้อ",
+      "_example": {
+        "orderId": {
+          "orderId": "string",
+          "userId": "string (FK -> users)",
+          "orderNumber": "string (readable format: ORD-2024-XXXXX)",
+          "status": "pending | confirmed | processing | shipped | delivered | cancelled | refunded",
+          "items": [
+            {
+              "productId": "string",
+              "name": "string",
+              "quantity": "number",
+              "price": "number (ราคาเวลาสั่ง)",
+              "subtotal": "number",
+              "specifications": {
+                "color": "string",
+                "size": "string"
+              }
+            }
+          ],
+          "shippingAddress": {
+            "fullName": "string",
+            "phone": "string",
+            "street": "string",
+            "district": "string",
+            "province": "string",
+            "postalCode": "string",
+            "country": "string"
+          },
+          "paymentMethod": "credit_card | debit_card | bank_transfer | cash_on_delivery | wallet",
+          "paymentStatus": "pending | completed | failed | refunded",
+          "subtotal": "number",
+          "shippingCost": "number",
+          "tax": "number",
+          "discountCode": "string (optional)",
+          "discountAmount": "number",
+          "totalAmount": "number",
+          "currency": "THB",
+          "notes": "string (optional)",
+          "trackingNumber": "string (optional)",
+          "createdAt": "timestamp",
+          "updatedAt": "timestamp",
+          "estimatedDelivery": "timestamp",
+          "timeline": [
+            {
+              "status": "string",
+              "timestamp": "timestamp",
+              "message": "string (optional)"
+            }
+          ]
+        }
+      }
+    },
+    "reviews": {
+      "_description": "เก็บรีวิวและเรตติ้งสินค้า (Optional)",
+      "_example": {
+        "reviewId": {
+          "reviewId": "string",
+          "productId": "string (FK -> products)",
+          "userId": "string (FK -> users)",
+          "orderId": "string (FK -> orders)",
+          "rating": "number (1-5)",
+          "title": "string",
+          "comment": "string",
+          "images": ["string (URL array)"],
+          "helpful": "number (จำนวนที่ thumbsup)",
+          "unhelpful": "number (จำนวนที่ thumbsdown)",
+          "verified": "boolean (ซื้อจริง)",
+          "createdAt": "timestamp",
+          "updatedAt": "timestamp"
+        }
+      }
+    },
+    "categories": {
+      "_description": "เก็บข้อมูลหมวดหมู่สินค้า (Optional)",
+      "_example": {
+        "categoryId": {
+          "categoryId": "string",
+          "name": "string",
+          "description": "string",
+          "image": "string (URL)",
+          "icon": "string (emoji or icon name)",
+          "subcategories": ["string array"],
+          "order": "number (สำหรับเรียงลำดับ)",
+          "active": "boolean",
+          "createdAt": "timestamp"
+        }
+      }
+    },
+    "discounts": {
+      "_description": "เก็บข้อมูลรหัสลดราคา (Optional)",
+      "_example": {
+        "discountCode": {
+          "code": "string (unique)",
+          "type": "fixed | percentage",
+          "value": "number",
+          "maxDiscount": "number (for percentage type)",
+          "minPurchase": "number",
+          "maxUses": "number",
+          "usedCount": "number",
+          "validFrom": "timestamp",
+          "validUntil": "timestamp",
+          "status": "active | inactive | expired",
+          "applicableCategories": ["string array or empty for all]",
+          "applicableProducts": ["string array or empty for all"],
+          "createdAt": "timestamp"
+        }
+      }
+    },
+    "suppliers": {
+      "_description": "เก็บข้อมูลซัพพลายเยอร์ (Optional)",
+      "_example": {
+        "supplierId": {
+          "supplierId": "string",
+          "name": "string",
+          "email": "string",
+          "phone": "string",
+          "address": {
+            "street": "string",
+            "province": "string",
+            "country": "string"
+          },
+          "status": "active | inactive",
+          "productCount": "number",
+          "rating": "number",
+          "createdAt": "timestamp"
+        }
+      }
+    }
+  },
+  "_relationships": {
+    "users": {
+      "carts": "1 user has many carts (or 1 cart per user)",
+      "whitelists": "1 user has 1 whitelist",
+      "orders": "1 user has many orders",
+      "reviews": "1 user writes many reviews"
+    },
+    "products": {
+      "orders": "1 product appears in many orders (via items array)",
+      "reviews": "1 product has many reviews",
+      "carts": "1 product can be in many carts (via items array)",
+      "whitelists": "1 product can be in many whitelists (via items array)",
+      "categories": "1 product belongs to 1 category",
+      "suppliers": "1 product comes from 1 supplier"
+    },
+    "orders": {
+      "users": "Many orders belong to 1 user",
+      "products": "1 order contains many products (via items array)"
+    },
+    "reviews": {
+      "products": "Many reviews for 1 product",
+      "users": "Many reviews by 1 user",
+      "orders": "1 review is for 1 order"
+    }
+  },
+  "_indexes": {
+    "recommended": [
+      {
+        "collection": "orders",
+        "fields": ["userId", "createdAt (descending)"],
+        "purpose": "Get user orders sorted by date"
+      },
+      {
+        "collection": "orders",
+        "fields": ["userId", "status"],
+        "purpose": "Filter orders by user and status"
+      },
+      {
+        "collection": "products",
+        "fields": ["category", "price"],
+        "purpose": "Filter products by category and price range"
+      },
+      {
+        "collection": "products",
+        "fields": ["status", "rating (descending)"],
+        "purpose": "Get popular products"
+      },
+      {
+        "collection": "reviews",
+        "fields": ["productId", "rating (descending)"],
+        "purpose": "Get reviews sorted by rating"
+      }
+    ]
+  },
+  "_security_rules_summary": {
+    "users": "Only user can read/write own document",
+    "products": "Public read, admin write",
+    "carts": "User can read/write own cart",
+    "whitelists": "User can read/write own whitelist",
+    "orders": "User can read own orders, admin can write",
+    "reviews": "Public read, authenticated write, user can edit own"
+  },
+  "_notes": {
+    "denormalization": "Store product name, price in orders items so they don't change when product is updated",
+    "timestamps": "All documents should have createdAt and updatedAt",
+    "status_tracking": "Use timeline array in orders to track status changes",
+    "sub_collections": "Optional: Use sub-collections (e.g., users/{userId}/carts) for hierarchical data",
+    "batch_operations": "Use batches for operations affecting multiple documents",
+    "transactions": "Use transactions for operations that need atomicity (e.g., placing order)"
+  }
+}

@@ -1,0 +1,161 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
+import {
+  productsService,
+  type Product,
+  type ProductInput,
+} from '../services/firestore-service'
+
+type ProductContextValue = {
+  products: Product[]
+  selectedProduct: Product | null
+  loading: boolean
+  error: string
+  searchTerm: string
+  selectedCategory: string
+  categories: string[]
+  setSearchTerm: (value: string) => void
+  setSelectedCategory: (value: string) => void
+  fetchProducts: (options?: { includeInactive?: boolean }) => Promise<void>
+  fetchProductById: (productId: string) => Promise<void>
+  clearSelectedProduct: () => void
+  createProduct: (input: ProductInput) => Promise<string>
+  updateProduct: (productId: string, input: ProductInput) => Promise<void>
+}
+
+const ProductContext = createContext<ProductContextValue | undefined>(undefined)
+
+export function ProductProvider({ children }: { children: ReactNode }) {
+  const [products, setProducts] = useState<Product[]>([])
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('all')
+
+  const categories = useMemo(() => {
+    const categorySet = new Set(products.map((item) => item.category))
+    return ['all', ...Array.from(categorySet)]
+  }, [products])
+
+  const fetchProducts = useCallback(
+    async (options?: { includeInactive?: boolean }) => {
+      try {
+        setLoading(true)
+        setError('')
+        const data = await productsService.getProducts({
+          search: searchTerm,
+          category: selectedCategory,
+          includeInactive: options?.includeInactive,
+        })
+        setProducts(data)
+      } catch {
+        setError('Unable to load products.')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [searchTerm, selectedCategory],
+  )
+
+  const fetchProductById = useCallback(async (productId: string) => {
+    try {
+      setLoading(true)
+      setError('')
+      const data = await productsService.getProductById(productId)
+      setSelectedProduct(data)
+    } catch {
+      setError('Unable to load product detail.')
+      setSelectedProduct(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const clearSelectedProduct = useCallback(() => {
+    setSelectedProduct(null)
+  }, [])
+
+  const createProduct = useCallback(async (input: ProductInput) => {
+    try {
+      setLoading(true)
+      setError('')
+      const productId = await productsService.createProduct(input)
+      await fetchProducts({ includeInactive: true })
+      return productId
+    } catch {
+      setError('Unable to create product.')
+      throw new Error('Unable to create product.')
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchProducts])
+
+  const updateProduct = useCallback(async (productId: string, input: ProductInput) => {
+    try {
+      setLoading(true)
+      setError('')
+      await productsService.updateProduct(productId, input)
+      await fetchProducts({ includeInactive: true })
+    } catch {
+      setError('Unable to update product.')
+      throw new Error('Unable to update product.')
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchProducts])
+
+  useEffect(() => {
+    void fetchProducts()
+  }, [fetchProducts])
+
+  const value = useMemo(
+    () => ({
+      products,
+      selectedProduct,
+      loading,
+      error,
+      searchTerm,
+      selectedCategory,
+      categories,
+      setSearchTerm,
+      setSelectedCategory,
+      fetchProducts,
+      fetchProductById,
+      clearSelectedProduct,
+      createProduct,
+      updateProduct,
+    }),
+    [
+      products,
+      selectedProduct,
+      loading,
+      error,
+      searchTerm,
+      selectedCategory,
+      categories,
+      fetchProducts,
+      fetchProductById,
+      clearSelectedProduct,
+      createProduct,
+      updateProduct,
+    ],
+  )
+
+  return <ProductContext.Provider value={value}>{children}</ProductContext.Provider>
+}
+
+export function useProducts() {
+  const context = useContext(ProductContext)
+  if (!context) {
+    throw new Error('useProducts must be used within ProductProvider')
+  }
+  return context
+}

@@ -1,0 +1,210 @@
+[
+  {
+    "id": "prd_iphone_15_pro_256_black",
+    "name": "iPhone 15 Pro 256GB",
+    "description": "สมาร์ทโฟนเรือธงพร้อมชิป A17 Pro และกล้องระดับโปร",
+    "category": "Electronics",
+    "subcategory": "Smartphones",
+    "price": 44900,
+    "originalPrice": 48900,
+    "stock": 34,
+    "status": "active",
+    "images": [
+      "https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1512499617640-c74ae3a79d37?auto=format&fit=crop&w=1200&q=80"
+    ],
+    "specifications": {
+      "brand": "Apple",
+      "color": "Black Titanium",
+      "storage": "256GB",
+      "display": "6.1-inch OLED"
+    },
+    "rating": 4.8,
+    "reviewCount": 312,
+    "tags": ["smartphone", "flagship", "apple"],
+    "sku": "IP15P-256-BLK",
+    "supplier": "Apple Thailand"
+  },
+  {
+    "id": "prd_galaxy_s24_ultra_512",
+    "name": "Galaxy S24 Ultra 512GB",
+    "description": "มือถือกล้องซูมจัดเต็ม พร้อม S-Pen ในตัว",
+    "category": "Electronics",
+    "subcategory": "Smartphones",
+    "price": 42900,
+    "originalPrice": 46900,
+    "stock": 21,
+    "status": "active",
+    "images": [
+      "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1565849904461-04a58ad377e0?auto=format&fit=crop&w=1200&q=80"
+    ],
+    "specifications": {
+      "brand": "Samsung",
+      "color": "Titanium Gray",
+      "storage": "512GB",
+      "display": "6.8-inch AMOLED"
+    },
+    "rating": 4.7,
+    "reviewCount": 188,
+    "tags": ["smartphone", "android", "samsung"],
+    "sku": "S24U-512-GRY",
+    "supplier": "Samsung Thailand"
+  },
+  {
+    "id": "prd_macbook_air_m3_13",
+    "name": "MacBook Air M3 13-inch",
+    "description": "โน้ตบุ๊กน้ำหนักเบา แบตอึด ใช้งานลื่นไหล",
+    "category": "Electronics",
+    "subcategory": "Laptops",
+    "price": 38900,
+    "originalPrice": 41900,
+    "stock": 16,
+    "status": "active",
+    "images": [
+      "https://images.unsplash.com/photo-1517336714739-489689fd1ca8?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1484788984921-03950022c9ef?auto=format&fit=crop&w=1200&q=80"
+    ],
+    "specifications": {
+      "brand": "Apple",
+      "chip": "M3",
+      "ram": "16GB",
+      "storage": "512GB SSD"
+    },
+    "rating": 4.9,
+    "reviewCount": 127,
+    "tags": ["laptop", "macbook", "apple"],
+    "sku": "MBA-M3-13-16-512",
+    "supplier": "Apple Thailand"
+  },
+  {
+    "id": "prd_dell_xps_13_plus",
+    "name": "Dell XPS 13 Plus",
+    "description": "ดีไซน์พรีเมียม จอคมชัด เหมาะกับสายทำงาน",
+    "category": "Electronics",
+    "subcategory": "Laptops",
+    "price": 45900,
+    "originalPrice": 49900,
+    "stock": 11,
+    "status": "active",
+    "images": [
+      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1527443224154-c4d7c2f16ba8?auto=format&fit=crop&w=1200&q=80"
+    ],
+    "specifications": {
+      "brand": "Dell",
+      "cpu": "Intel Core Ultra 7",
+      "ram": "16GB",
+      "storage": "1TB SSD"
+    },
+    "rating": 4.6,
+    "reviewCount": 84,
+    "tags": ["laptop", "windows", "productivity"],
+    "sku": "DX13P-U7-16-1T",
+    "supplier": "Dell Official"
+  },
+  {
+    "id": "prd_airpods_pro_2_usb_c",
+    "name": "AirPods Pro 2 USB-C",
+    "description": "หูฟังไร้สายพร้อม ANC และโหมด Transparency",
+    "category": "Electronics",
+    "subcategory": "Accessories",
+    "price": 7990,
+    "originalPrice": 8990,
+    "stock": 45,
+    "status": "active",
+    "images": [
+      "https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?auto=format&fit=crop&w=1200&q=80"
+    ],
+    "specifications": {
+      "brand": "Apple",
+      "connectivity": "Bluetooth 5.3",
+      "battery": "Up to 30 hours with case",
+      "noiseCancellation": "Active Noise Cancellation"
+    },
+    "rating": 4.8,
+    "reviewCount": 421,
+    "tags": ["earbuds", "audio", "apple"],
+    "sku": "APP2-USBC",
+    "supplier": "Apple Thailand"
+  },
+  {
+    "id": "prd_sony_wh1000xm5_black",
+    "name": "Sony WH-1000XM5",
+    "description": "หูฟังครอบหูตัดเสียงรบกวนระดับท็อป",
+    "category": "Electronics",
+    "subcategory": "Accessories",
+    "price": 10990,
+    "originalPrice": 12990,
+    "stock": 28,
+    "status": "active",
+    "images": [
+      "https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=1200&q=80"
+    ],
+    "specifications": {
+      "brand": "Sony",
+      "connectivity": "Bluetooth 5.2",
+      "battery": "Up to 30 hours",
+      "noiseCancellation": "Yes"
+    },
+    "rating": 4.7,
+    "reviewCount": 203,
+    "tags": ["headphones", "audio", "sony"],
+    "sku": "WH1000XM5-BLK",
+    "supplier": "Sony Store"
+  },
+  {
+    "id": "prd_gaming_mouse_g502x",
+    "name": "Logitech G502 X",
+    "description": "เมาส์เกมมิ่งน้ำหนักเบา ตอบสนองไว",
+    "category": "Gaming",
+    "subcategory": "Accessories",
+    "price": 2490,
+    "originalPrice": 2990,
+    "stock": 67,
+    "status": "active",
+    "images": [
+      "https://images.unsplash.com/photo-1629429407759-01cd3d7cfb38?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?auto=format&fit=crop&w=1200&q=80"
+    ],
+    "specifications": {
+      "brand": "Logitech",
+      "dpi": "25600",
+      "switches": "Lightforce",
+      "connection": "Wired"
+    },
+    "rating": 4.5,
+    "reviewCount": 96,
+    "tags": ["gaming", "mouse", "logitech"],
+    "sku": "G502X-WIRED",
+    "supplier": "Logitech Official"
+  },
+  {
+    "id": "prd_office_chair_ergoflex",
+    "name": "ErgoFlex Pro Office Chair",
+    "description": "เก้าอี้ทำงานรองรับสรีระ นั่งนานไม่ปวดหลัง",
+    "category": "Furniture",
+    "subcategory": "Office",
+    "price": 6590,
+    "originalPrice": 7990,
+    "stock": 0,
+    "status": "active",
+    "images": [
+      "https://images.unsplash.com/photo-1580480055273-228ff5388ef8?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80"
+    ],
+    "specifications": {
+      "material": "Mesh + Aluminum",
+      "color": "Charcoal",
+      "maxLoad": "120kg",
+      "warranty": "3 years"
+    },
+    "rating": 4.4,
+    "reviewCount": 52,
+    "tags": ["furniture", "office", "chair"],
+    "sku": "ERGOFLEX-PRO-CHR",
+    "supplier": "ErgoFlex Thailand"
+  }
+]
