@@ -5,12 +5,14 @@ import ProfilePage from './components/account/ProfilePage'
 import { useAuth } from './contexts/AuthContext'
 import ProductListingPage from './pages/customer/ProductListingPage'
 import ProductDetailPage from './pages/customer/ProductDetailPage'
+import WhitelistPage from './pages/customer/WhitelistPage'
+import CartPage from './pages/customer/CartPage'
 import AdminProductManagementPage from './pages/admin/AdminProductManagementPage'
 
 function App() {
   const { currentUser, role, loading } = useAuth()
   const [screen, setScreen] = useState<'login' | 'register'>('login')
-  const [appTab, setAppTab] = useState<'catalog' | 'detail' | 'profile' | 'admin'>('catalog')
+  const [appTab, setAppTab] = useState<'catalog' | 'detail' | 'whitelist' | 'cart' | 'profile' | 'admin'>('catalog')
   const [activeProductId, setActiveProductId] = useState('')
 
   if (loading) {
@@ -46,6 +48,20 @@ function App() {
               >
                 Profile
               </button>
+              <button
+                type="button"
+                onClick={() => setAppTab('whitelist')}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100"
+              >
+                Wishlist
+              </button>
+              <button
+                type="button"
+                onClick={() => setAppTab('cart')}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100"
+              >
+                Cart
+              </button>
               {role === 'admin' ? (
                 <button
                   type="button"
@@ -75,6 +91,8 @@ function App() {
           ) : null}
 
           {appTab === 'profile' ? <ProfilePage /> : null}
+          {appTab === 'whitelist' ? <WhitelistPage /> : null}
+          {appTab === 'cart' ? <CartPage /> : null}
 
           {appTab === 'admin' && role === 'admin' ? <AdminProductManagementPage /> : null}
         </div>

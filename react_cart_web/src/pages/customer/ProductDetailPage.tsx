@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useProducts } from '../../contexts/ProductContext'
+import { useWhitelist } from '../../contexts/WhitelistContext'
+import { useCart } from '../../contexts/CartContext'
 
 type ProductDetailPageProps = {
   productId: string
@@ -8,7 +10,11 @@ type ProductDetailPageProps = {
 
 export default function ProductDetailPage({ productId, onBack }: ProductDetailPageProps) {
   const { selectedProduct, loading, error, fetchProductById } = useProducts()
+  const { isInWhitelist, toggleWhitelist } = useWhitelist()
+  const { addToCart } = useCart()
   const [activeImage, setActiveImage] = useState(0)
+  const [quantity, setQuantity] = useState(1)
+  const [actionError, setActionError] = useState('')
 
   useEffect(() => {
     void fetchProductById(productId)
@@ -34,6 +40,34 @@ export default function ProductDetailPage({ productId, onBack }: ProductDetailPa
   }
 
   const hasStock = selectedProduct.stock > 0
+  const inWhitelist = isInWhitelist(selectedProduct.productId)
+
+  const handleToggleWishlist = async () => {
+    try {
+      setActionError('')
+      await toggleWhitelist(selectedProduct)
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'ไม่สามารถอัปเดตรายการโปรดได้')
+    }
+  }
+
+  const handleAddToCart = async () => {
+    if (quantity < 1) {
+      setActionError('จำนวนสินค้าต้องอย่างน้อย 1 ชิ้น')
+      return
+    }
+    if (quantity > selectedProduct.stock) {
+      setActionError('จำนวนที่เลือกเกินสต็อกคงเหลือ')
+      return
+    }
+
+    try {
+      setActionError('')
+      await addToCart(selectedProduct, quantity)
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'ไม่สามารถเพิ่มลงตะกร้าได้')
+    }
+  }
 
   return (
     <section className="space-y-6">
@@ -47,7 +81,7 @@ export default function ProductDetailPage({ productId, onBack }: ProductDetailPa
 
       <div className="grid gap-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-card lg:grid-cols-2">
         <div className="space-y-3">
-          <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-slate-100">
+          <div className="aspect-4/3 overflow-hidden rounded-2xl bg-slate-100">
             <img src={selectedImage} alt={selectedProduct.name} className="h-full w-full object-cover" />
           </div>
           <div className="grid grid-cols-4 gap-2">
@@ -86,13 +120,39 @@ export default function ProductDetailPage({ productId, onBack }: ProductDetailPa
             {hasStock ? `คงเหลือ ${selectedProduct.stock} ชิ้น` : 'สินค้าหมด'}
           </p>
 
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleToggleWishlist}
+              className={`rounded-xl border px-3 py-2 text-sm font-medium ${
+                inWhitelist
+                  ? 'border-rose-300 bg-rose-50 text-rose-700'
+                  : 'border-slate-300 bg-white text-slate-700'
+              }`}
+            >
+              {inWhitelist ? '❤ อยู่ในรายการโปรด' : '♡ เพิ่มรายการโปรด'}
+            </button>
+
+            <input
+              type="number"
+              min={1}
+              max={Math.max(1, selectedProduct.stock)}
+              value={quantity}
+              disabled={!hasStock}
+              onChange={(event) => setQuantity(Number(event.target.value))}
+              className="w-24 rounded-xl border border-slate-300 px-3 py-2"
+            />
+          </div>
+
           <button
             type="button"
             disabled={!hasStock}
+            onClick={handleAddToCart}
             className="w-full rounded-xl bg-brand-500 px-4 py-2.5 font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            {hasStock ? 'สั่งซื้อสินค้า' : 'สินค้าหมด'}
+            {hasStock ? 'เพิ่มลงตะกร้า' : 'สินค้าหมด'}
           </button>
+          {actionError ? <p className="text-sm text-rose-600">{actionError}</p> : null}
         </div>
       </div>
     </section>

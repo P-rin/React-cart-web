@@ -4,6 +4,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  deleteDoc,
   orderBy,
   query,
   serverTimestamp,
@@ -151,20 +152,22 @@ export const productsService = {
   },
 }
 
-type CartItemInput = {
+export type CartItemInput = {
   productId: string
   name: string
   price: number
   quantity: number
   image?: string
+  specifications?: Record<string, string>
+  stock?: number
 }
 
-type CartItem = CartItemInput & {
+export type CartItem = CartItemInput & {
   addedAt: Timestamp
   subtotal: number
 }
 
-type CartDoc = {
+export type CartDoc = {
   cartId: string
   userId: string
   items: CartItem[]
@@ -173,25 +176,73 @@ type CartDoc = {
   lastUpdated: Timestamp
 }
 
+export type WhitelistItem = {
+  productId: string
+  name: string
+  price: number
+  image?: string
+  addedAt: Timestamp
+  notes?: string
+}
+
+export type WhitelistDoc = {
+  whitelistId: string
+  userId: string
+  items: WhitelistItem[]
+  totalItems: number
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+
+function toCartSummary(items: CartItem[]) {
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
+  const totalPrice = items.reduce((sum, item) => sum + item.subtotal, 0)
+  return { totalItems, totalPrice }
+}
+
 export const cartsService = {
+  async getCart(userId: string): Promise<CartDoc | null> {
+    const cartRef = doc(db, 'carts', `cart_${userId}`)
+    const snapshot = await getDoc(cartRef)
+    if (!snapshot.exists()) {
+      return null
+    }
+    return snapshot.data() as CartDoc
+  },
+
   async addToCart(userId: string, product: CartItemInput, quantity = 1) {
+    if (quantity <= 0) {
+      throw new Error('Quantity must be at least 1')
+    }
+
     const cartRef = doc(db, 'carts', `cart_${userId}`)
     const existingCart = await getDoc(cartRef)
+    const availableStock =
+      typeof product.stock === 'number'
+        ? Math.max(0, product.stock)
+        : Number.POSITIVE_INFINITY
+
+    const { stock: _stock, ...cartInput } = product
 
     const newItem: CartItem = {
-      ...product,
+      ...cartInput,
       quantity,
       addedAt: Timestamp.now(),
       subtotal: product.price * quantity,
     }
 
     if (!existingCart.exists()) {
+      if (quantity > availableStock) {
+        throw new Error('Cannot add quantity greater than available stock')
+      }
+
+      const summary = toCartSummary([newItem])
       const cart: CartDoc = {
         cartId: `cart_${userId}`,
         userId,
         items: [newItem],
-        totalItems: 1,
-        totalPrice: newItem.subtotal,
+        totalItems: summary.totalItems,
+        totalPrice: summary.totalPrice,
         lastUpdated: Timestamp.now(),
       }
 
@@ -204,22 +255,222 @@ export const cartsService = {
 
     if (itemIndex >= 0) {
       const target = cartData.items[itemIndex]
-      target.quantity += quantity
+      const nextQuantity = target.quantity + quantity
+      if (nextQuantity > availableStock) {
+        throw new Error('Cannot add quantity greater than available stock')
+      }
+
+      target.quantity = nextQuantity
       target.subtotal = target.price * target.quantity
     } else {
+      if (quantity > availableStock) {
+        throw new Error('Cannot add quantity greater than available stock')
+      }
       cartData.items.push(newItem)
     }
 
-    const totalPrice = cartData.items.reduce((sum, item) => sum + item.subtotal, 0)
+    const summary = toCartSummary(cartData.items)
     const updatedCart: CartDoc = {
       ...cartData,
-      totalItems: cartData.items.length,
-      totalPrice,
+      totalItems: summary.totalItems,
+      totalPrice: summary.totalPrice,
       lastUpdated: Timestamp.now(),
     }
 
     await setDoc(cartRef, updatedCart)
     return updatedCart
+  },
+
+  async updateCartItemQuantity(
+    userId: string,
+    productId: string,
+    quantity: number,
+    stock?: number,
+  ) {
+    const cartRef = doc(db, 'carts', `cart_${userId}`)
+    const existingCart = await getDoc(cartRef)
+    if (!existingCart.exists()) {
+      throw new Error('Cart not found')
+    }
+
+    if (quantity < 1) {
+      throw new Error('Quantity must be at least 1')
+    }
+
+    const cartData = existingCart.data() as CartDoc
+    const itemIndex = cartData.items.findIndex((item) => item.productId === productId)
+    if (itemIndex < 0) {
+      throw new Error('Cart item not found')
+    }
+
+    if (typeof stock === 'number' && quantity > stock) {
+      throw new Error('Cannot set quantity greater than available stock')
+    }
+
+    const target = cartData.items[itemIndex]
+    target.quantity = quantity
+    target.subtotal = target.price * quantity
+
+    const summary = toCartSummary(cartData.items)
+    const updatedCart: CartDoc = {
+      ...cartData,
+      totalItems: summary.totalItems,
+      totalPrice: summary.totalPrice,
+      lastUpdated: Timestamp.now(),
+    }
+
+    await setDoc(cartRef, updatedCart)
+    return updatedCart
+  },
+
+  async removeFromCart(userId: string, productId: string) {
+    const cartRef = doc(db, 'carts', `cart_${userId}`)
+    const existingCart = await getDoc(cartRef)
+    if (!existingCart.exists()) {
+      return null
+    }
+
+    const cartData = existingCart.data() as CartDoc
+    const items = cartData.items.filter((item) => item.productId !== productId)
+
+    if (items.length === 0) {
+      await deleteDoc(cartRef)
+      return null
+    }
+
+    const summary = toCartSummary(items)
+    const updatedCart: CartDoc = {
+      ...cartData,
+      items,
+      totalItems: summary.totalItems,
+      totalPrice: summary.totalPrice,
+      lastUpdated: Timestamp.now(),
+    }
+
+    await setDoc(cartRef, updatedCart)
+    return updatedCart
+  },
+
+  async clearCart(userId: string) {
+    const cartRef = doc(db, 'carts', `cart_${userId}`)
+    await deleteDoc(cartRef)
+  },
+}
+
+export const whitelistsService = {
+  async getWhitelist(userId: string): Promise<WhitelistDoc | null> {
+    const whitelistRef = doc(db, 'whitelists', `wishlist_${userId}`)
+    const snapshot = await getDoc(whitelistRef)
+    if (!snapshot.exists()) {
+      return null
+    }
+    return snapshot.data() as WhitelistDoc
+  },
+
+  async addToWhitelist(
+    userId: string,
+    payload: {
+      productId: string
+      name: string
+      price: number
+      image?: string
+      notes?: string
+    },
+  ) {
+    const whitelistRef = doc(db, 'whitelists', `wishlist_${userId}`)
+    const existing = await getDoc(whitelistRef)
+
+    const newItem: WhitelistItem = {
+      productId: payload.productId,
+      name: payload.name,
+      price: payload.price,
+      image: payload.image,
+      notes: payload.notes,
+      addedAt: Timestamp.now(),
+    }
+
+    if (!existing.exists()) {
+      const nextDoc: WhitelistDoc = {
+        whitelistId: `wishlist_${userId}`,
+        userId,
+        items: [newItem],
+        totalItems: 1,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      }
+
+      await setDoc(whitelistRef, nextDoc)
+      return nextDoc
+    }
+
+    const data = existing.data() as WhitelistDoc
+    const alreadyExists = data.items.some((item) => item.productId === payload.productId)
+    if (alreadyExists) {
+      return data
+    }
+
+    const items = [...data.items, newItem]
+    const nextDoc: WhitelistDoc = {
+      ...data,
+      items,
+      totalItems: items.length,
+      updatedAt: Timestamp.now(),
+    }
+
+    await setDoc(whitelistRef, nextDoc)
+    return nextDoc
+  },
+
+  async removeFromWhitelist(userId: string, productId: string) {
+    const whitelistRef = doc(db, 'whitelists', `wishlist_${userId}`)
+    const existing = await getDoc(whitelistRef)
+    if (!existing.exists()) {
+      return null
+    }
+
+    const data = existing.data() as WhitelistDoc
+    const items = data.items.filter((item) => item.productId !== productId)
+
+    if (items.length === 0) {
+      await deleteDoc(whitelistRef)
+      return null
+    }
+
+    const nextDoc: WhitelistDoc = {
+      ...data,
+      items,
+      totalItems: items.length,
+      updatedAt: Timestamp.now(),
+    }
+    await setDoc(whitelistRef, nextDoc)
+    return nextDoc
+  },
+
+  async toggleWhitelist(
+    userId: string,
+    payload: {
+      productId: string
+      name: string
+      price: number
+      image?: string
+      notes?: string
+    },
+  ) {
+    const current = await this.getWhitelist(userId)
+    const exists = current?.items.some((item) => item.productId === payload.productId)
+
+    if (exists) {
+      await this.removeFromWhitelist(userId, payload.productId)
+      return { inWhitelist: false }
+    }
+
+    await this.addToWhitelist(userId, payload)
+    return { inWhitelist: true }
+  },
+
+  async isProductInWhitelist(userId: string, productId: string) {
+    const current = await this.getWhitelist(userId)
+    return current?.items.some((item) => item.productId === productId) ?? false
   },
 }
 
