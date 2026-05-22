@@ -7,6 +7,7 @@ import {
   deleteDoc,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   Timestamp,
@@ -53,25 +54,57 @@ export type ProductInput = {
   supplier?: string
 }
 
+const normalizeProductStatus = (value: unknown): ProductStatus => {
+  const status = typeof value === 'string' ? value.trim().toLowerCase() : ''
+  if (status === 'active' || status === 'inactive' || status === 'discontinued') {
+    return status
+  }
+  return 'inactive'
+}
+
+const normalizeProduct = (productId: string, raw: Record<string, unknown>): Product => ({
+  productId,
+  name: typeof raw.name === 'string' ? raw.name : '',
+  description: typeof raw.description === 'string' ? raw.description : '',
+  category: typeof raw.category === 'string' ? raw.category : 'Uncategorized',
+  subcategory: typeof raw.subcategory === 'string' ? raw.subcategory : '',
+  price: typeof raw.price === 'number' ? raw.price : 0,
+  originalPrice: typeof raw.originalPrice === 'number' ? raw.originalPrice : undefined,
+  currency: typeof raw.currency === 'string' ? raw.currency : 'THB',
+  stock: typeof raw.stock === 'number' ? raw.stock : 0,
+  status: normalizeProductStatus(raw.status),
+  images: Array.isArray(raw.images)
+    ? raw.images.filter((image): image is string => typeof image === 'string')
+    : [],
+  specifications:
+    raw.specifications && typeof raw.specifications === 'object'
+      ? (raw.specifications as Record<string, string>)
+      : {},
+  rating: typeof raw.rating === 'number' ? raw.rating : 0,
+  reviewCount: typeof raw.reviewCount === 'number' ? raw.reviewCount : 0,
+  tags: Array.isArray(raw.tags)
+    ? raw.tags.filter((tag): tag is string => typeof tag === 'string')
+    : [],
+  sku: typeof raw.sku === 'string' ? raw.sku : '',
+  supplier: typeof raw.supplier === 'string' ? raw.supplier : '',
+})
+
 export const productsService = {
   async getProducts(params?: {
     search?: string
     category?: string
     includeInactive?: boolean
   }): Promise<Product[]> {
-    const constraints = []
+    const snapshot = await getDocs(collection(db, 'products'))
+    let products = snapshot.docs.map((item) =>
+      normalizeProduct(item.id, item.data() as Record<string, unknown>),
+    )
+
+    products = products.filter((product) => product.name.trim().length > 0)
+
     if (!params?.includeInactive) {
-      constraints.push(where('status', '==', 'active'))
+      products = products.filter((product) => product.status === 'active')
     }
-    constraints.push(orderBy('name', 'asc'))
-
-    const q = query(collection(db, 'products'), ...constraints)
-    const snapshot = await getDocs(q)
-
-    let products = snapshot.docs.map((item) => {
-      const data = item.data() as Omit<Product, 'productId'>
-      return { ...data, productId: item.id }
-    })
 
     const search = params?.search?.trim().toLowerCase()
     if (search) {
@@ -84,7 +117,7 @@ export const productsService = {
       products = products.filter((product) => product.category === params.category)
     }
 
-    return products
+    return products.sort((left, right) => left.name.localeCompare(right.name))
   },
 
   async getProductById(productId: string): Promise<Product | null> {
@@ -192,6 +225,84 @@ export type WhitelistDoc = {
   totalItems: number
   createdAt: Timestamp
   updatedAt: Timestamp
+}
+
+export type OrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'processing'
+  | 'shipped'
+  | 'delivered'
+  | 'cancelled'
+  | 'refunded'
+
+export type PaymentMethod = 'bank_transfer' | 'credit_card' | 'cash_on_delivery'
+
+export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded'
+
+export type ShippingAddress = {
+  fullName: string
+  phone: string
+  street: string
+  district: string
+  province: string
+  postalCode: string
+  country: string
+}
+
+export type OrderTimelineItem = {
+  status: OrderStatus
+  timestamp: Timestamp
+  message?: string
+}
+
+export type OrderItem = {
+  productId: string
+  name: string
+  quantity: number
+  price: number
+  subtotal: number
+  specifications?: Record<string, string>
+}
+
+export type OrderDoc = {
+  orderId: string
+  userId: string
+  orderNumber: string
+  status: OrderStatus
+  items: OrderItem[]
+  shippingAddress: ShippingAddress
+  paymentMethod: PaymentMethod
+  paymentStatus: PaymentStatus
+  subtotal: number
+  shippingCost: number
+  tax: number
+  discountAmount: number
+  totalAmount: number
+  currency: string
+  notes?: string
+  trackingNumber?: string
+  createdAt: Timestamp
+  updatedAt: Timestamp
+  estimatedDelivery?: Timestamp
+  timeline: OrderTimelineItem[]
+}
+
+export type ProcessOrderInput = {
+  userId: string
+  shippingAddress: ShippingAddress
+  paymentMethod: PaymentMethod
+  paymentStatus: PaymentStatus
+  shippingCost: number
+  tax: number
+  discountAmount: number
+  notes?: string
+}
+
+export type ProcessOrderResult = {
+  orderId: string
+  orderNumber: string
+  totalAmount: number
 }
 
 function toCartSummary(items: CartItem[]) {
@@ -475,14 +586,182 @@ export const whitelistsService = {
 }
 
 export const ordersService = {
-  async getUserOrders(userId: string) {
+  async getUserOrders(userId: string): Promise<OrderDoc[]> {
     const ordersRef = collection(db, 'orders')
-    const ordersQuery = query(ordersRef, where('userId', '==', userId))
+    const ordersQuery = query(
+      ordersRef,
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc'),
+    )
     const snapshot = await getDocs(ordersQuery)
 
     return snapshot.docs.map((item) => ({
       orderId: item.id,
-      ...item.data(),
-    }))
+      ...(item.data() as Record<string, unknown>),
+    })) as OrderDoc[]
   },
+
+  async getOrder(orderId: string): Promise<OrderDoc | null> {
+    const orderRef = doc(db, 'orders', orderId)
+    const snapshot = await getDoc(orderRef)
+    if (!snapshot.exists()) {
+      return null
+    }
+
+    return {
+      orderId: snapshot.id,
+      ...snapshot.data(),
+    } as OrderDoc
+  },
+
+  async getUserOrdersByStatus(userId: string, status: OrderStatus): Promise<OrderDoc[]> {
+    const ordersRef = collection(db, 'orders')
+    const ordersQuery = query(
+      ordersRef,
+      where('userId', '==', userId),
+      where('status', '==', status),
+      orderBy('createdAt', 'desc'),
+    )
+    const snapshot = await getDocs(ordersQuery)
+
+    return snapshot.docs.map((item) => ({
+      orderId: item.id,
+      ...(item.data() as Record<string, unknown>),
+    })) as OrderDoc[]
+  },
+
+  async updateOrderStatus(orderId: string, status: OrderStatus, message?: string) {
+    const orderRef = doc(db, 'orders', orderId)
+    const existing = await getDoc(orderRef)
+    if (!existing.exists()) {
+      throw new Error('Order not found')
+    }
+
+    const orderData = existing.data() as OrderDoc
+    const timeline = [...(orderData.timeline ?? [])]
+    timeline.push({
+      status,
+      timestamp: Timestamp.now(),
+      message,
+    })
+
+    await updateDoc(orderRef, {
+      status,
+      timeline,
+      updatedAt: Timestamp.now(),
+    })
+  },
+}
+
+export async function processOrder(input: ProcessOrderInput): Promise<ProcessOrderResult> {
+  const {
+    userId,
+    shippingAddress,
+    paymentMethod,
+    paymentStatus,
+    shippingCost,
+    tax,
+    discountAmount,
+    notes,
+  } = input
+
+  const cartRef = doc(db, 'carts', `cart_${userId}`)
+  const orderRef = doc(collection(db, 'orders'))
+
+  return runTransaction(db, async (tx) => {
+    const cartSnap = await tx.get(cartRef)
+    if (!cartSnap.exists()) {
+      throw new Error('Cart is empty or not found')
+    }
+
+    const cartData = cartSnap.data() as CartDoc
+    const cartItems = cartData.items ?? []
+    if (cartItems.length === 0) {
+      throw new Error('Cart is empty')
+    }
+
+    for (const item of cartItems) {
+      const productRef = doc(db, 'products', item.productId)
+      const productSnap = await tx.get(productRef)
+      if (!productSnap.exists()) {
+        throw new Error(`Product not found: ${item.productId}`)
+      }
+
+      const productData = productSnap.data() as Product
+      const availableStock = Number(productData.stock ?? 0)
+      if (availableStock < item.quantity) {
+        throw new Error(`Stock is not enough for ${item.name}`)
+      }
+
+      tx.update(productRef, {
+        stock: availableStock - item.quantity,
+        updatedAt: Timestamp.now(),
+      })
+    }
+
+    const subtotal = cartItems.reduce((sum, item) => sum + item.subtotal, 0)
+    const totalAmount = Math.max(0, subtotal + shippingCost + tax - discountAmount)
+
+    const now = Timestamp.now()
+    const estimatedDelivery = Timestamp.fromDate(
+      new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+    )
+
+    const status: OrderStatus = paymentStatus === 'completed' ? 'confirmed' : 'pending'
+    const timeline: OrderTimelineItem[] = [
+      {
+        status: 'pending',
+        timestamp: now,
+        message: 'Order created successfully',
+      },
+    ]
+
+    if (status === 'confirmed') {
+      timeline.push({
+        status: 'confirmed',
+        timestamp: now,
+        message: 'Payment completed',
+      })
+    }
+
+    const orderNumber = `ORD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${orderRef.id.slice(0, 6).toUpperCase()}`
+
+    const orderPayload: OrderDoc = {
+      orderId: orderRef.id,
+      userId,
+      orderNumber,
+      status,
+      items: cartItems.map((item) => ({
+        productId: item.productId,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        subtotal: item.subtotal,
+        specifications: item.specifications,
+      })),
+      shippingAddress,
+      paymentMethod,
+      paymentStatus,
+      subtotal,
+      shippingCost,
+      tax,
+      discountAmount,
+      totalAmount,
+      currency: 'THB',
+      notes,
+      createdAt: now,
+      updatedAt: now,
+      estimatedDelivery,
+      timeline,
+    }
+
+    tx.set(orderRef, orderPayload)
+    tx.delete(cartRef)
+
+    return {
+      orderId: orderRef.id,
+      orderNumber,
+      totalAmount,
+    }
+  })
 }

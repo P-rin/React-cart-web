@@ -4,7 +4,11 @@ import { useCart } from '../../contexts/CartContext'
 import { useProducts } from '../../contexts/ProductContext'
 import { productsService } from '../../services/firestore-service'
 
-export default function CartPage() {
+type CartPageProps = {
+  onProceedCheckout: () => void
+}
+
+export default function CartPage({ onProceedCheckout }: CartPageProps) {
   const { cart, loading, error, updateQuantity, removeFromCart } = useCart()
   const { products } = useProducts()
   const [rowError, setRowError] = useState<Record<string, string>>({})
@@ -110,6 +114,7 @@ export default function CartPage() {
 
             <button
               type="button"
+              onClick={onProceedCheckout}
               className="w-full rounded-xl bg-brand-500 px-4 py-2.5 font-medium text-white transition hover:bg-brand-600"
             >
               Proceed to Checkout

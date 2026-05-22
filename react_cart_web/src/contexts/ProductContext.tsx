@@ -56,7 +56,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
           includeInactive: options?.includeInactive,
         })
         setProducts(data)
-      } catch {
+      } catch (err) {
+        console.error('fetchProducts failed:', err)
         setError('Unable to load products.')
       } finally {
         setLoading(false)

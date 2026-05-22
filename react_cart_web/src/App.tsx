@@ -8,12 +8,27 @@ import ProductDetailPage from './pages/customer/ProductDetailPage'
 import WhitelistPage from './pages/customer/WhitelistPage'
 import CartPage from './pages/customer/CartPage'
 import AdminProductManagementPage from './pages/admin/AdminProductManagementPage'
+import CheckoutPage from './pages/customer/CheckoutPage'
+import OrderSuccessPage from './pages/customer/OrderSuccessPage'
+import OrdersHistoryPage from './pages/customer/OrdersHistoryPage'
+
+type AppTab =
+  | 'catalog'
+  | 'detail'
+  | 'whitelist'
+  | 'cart'
+  | 'checkout'
+  | 'orders'
+  | 'order-success'
+  | 'profile'
+  | 'admin'
 
 function App() {
   const { currentUser, role, loading } = useAuth()
   const [screen, setScreen] = useState<'login' | 'register'>('login')
-  const [appTab, setAppTab] = useState<'catalog' | 'detail' | 'whitelist' | 'cart' | 'profile' | 'admin'>('catalog')
+  const [appTab, setAppTab] = useState<AppTab>('catalog')
   const [activeProductId, setActiveProductId] = useState('')
+  const [lastOrder, setLastOrder] = useState<{ orderId: string; orderNumber: string; totalAmount: number } | null>(null)
 
   if (loading) {
     return (
@@ -62,6 +77,13 @@ function App() {
               >
                 Cart
               </button>
+              <button
+                type="button"
+                onClick={() => setAppTab('orders')}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100"
+              >
+                Orders
+              </button>
               {role === 'admin' ? (
                 <button
                   type="button"
@@ -92,7 +114,28 @@ function App() {
 
           {appTab === 'profile' ? <ProfilePage /> : null}
           {appTab === 'whitelist' ? <WhitelistPage /> : null}
-          {appTab === 'cart' ? <CartPage /> : null}
+          {appTab === 'cart' ? <CartPage onProceedCheckout={() => setAppTab('checkout')} /> : null}
+
+          {appTab === 'checkout' ? (
+            <CheckoutPage
+              onBackToCart={() => setAppTab('cart')}
+              onSuccess={(payload) => {
+                setLastOrder(payload)
+                setAppTab('order-success')
+              }}
+            />
+          ) : null}
+
+          {appTab === 'order-success' && lastOrder ? (
+            <OrderSuccessPage
+              orderNumber={lastOrder.orderNumber}
+              totalAmount={lastOrder.totalAmount}
+              onViewOrders={() => setAppTab('orders')}
+              onContinueShopping={() => setAppTab('catalog')}
+            />
+          ) : null}
+
+          {appTab === 'orders' ? <OrdersHistoryPage onBackToCatalog={() => setAppTab('catalog')} /> : null}
 
           {appTab === 'admin' && role === 'admin' ? <AdminProductManagementPage /> : null}
         </div>
