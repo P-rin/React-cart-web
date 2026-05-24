@@ -201,9 +201,25 @@ reviews ──────→ users (author)
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwnerByData(data) {
+      return isSignedIn() && data.userId == request.auth.uid;
+    }
+
+    function isOwnerCartId(cartId) {
+      return isSignedIn() && cartId == ('cart_' + request.auth.uid);
+    }
+
+    function isOwnerWishlistId(whitelistId) {
+      return isSignedIn() && whitelistId == ('wishlist_' + request.auth.uid);
+    }
+
     // Users - เฉพาะผู้ใช้เอง
     match /users/{userId} {
-      allow read, write: if request.auth.uid == userId;
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
     
     // Products - อ่านได้ทั้งหมด, แต่เขียนแค่ admin
@@ -214,12 +230,30 @@ service cloud.firestore {
     
     // Carts - เฉพาะของตัวเอง
     match /carts/{cartId} {
-      allow read, write: if resource.data.userId == request.auth.uid;
+      allow get: if isOwnerCartId(cartId);
+      allow list: if false;
+      allow create: if isOwnerCartId(cartId)
+                    && isOwnerByData(request.resource.data)
+                    && request.resource.data.cartId == cartId;
+      allow update: if isOwnerCartId(cartId)
+                    && isOwnerByData(resource.data)
+                    && request.resource.data.userId == resource.data.userId
+                    && request.resource.data.cartId == resource.data.cartId;
+      allow delete: if isOwnerCartId(cartId) && isOwnerByData(resource.data);
     }
     
     // Whitelists - เฉพาะของตัวเอง
     match /whitelists/{whitelistId} {
-      allow read, write: if resource.data.userId == request.auth.uid;
+      allow get: if isOwnerWishlistId(whitelistId);
+      allow list: if false;
+      allow create: if isOwnerWishlistId(whitelistId)
+                    && isOwnerByData(request.resource.data)
+                    && request.resource.data.whitelistId == whitelistId;
+      allow update: if isOwnerWishlistId(whitelistId)
+                    && isOwnerByData(resource.data)
+                    && request.resource.data.userId == resource.data.userId
+                    && request.resource.data.whitelistId == resource.data.whitelistId;
+      allow delete: if isOwnerWishlistId(whitelistId) && isOwnerByData(resource.data);
     }
     
     // Orders - อ่านแค่ของตัวเอง

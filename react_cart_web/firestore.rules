@@ -1,0 +1,89 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isOwnerByData(data) {
+      return isSignedIn() && data.userId == request.auth.uid;
+    }
+
+    function isCheckoutStockAdjustment() {
+      return isSignedIn()
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['stock', 'updatedAt'])
+        && request.resource.data.stock is int
+        && request.resource.data.stock >= 0
+        && request.resource.data.stock <= resource.data.stock
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function isOwnerCartId(cartId) {
+      return isSignedIn() && cartId == ('cart_' + request.auth.uid);
+    }
+
+    function isOwnerWishlistId(whitelistId) {
+      return isSignedIn() && whitelistId == ('wishlist_' + request.auth.uid);
+    }
+
+    // Users profile
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Public read product catalog, admin write product data
+    match /products/{productId} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || isCheckoutStockAdjustment();
+    }
+
+    // Customer cart
+    match /carts/{cartId} {
+      allow get: if isOwnerCartId(cartId);
+      allow list: if false;
+      allow create: if isOwnerCartId(cartId)
+                    && isOwnerByData(request.resource.data)
+                    && request.resource.data.cartId == cartId;
+      allow update: if isOwnerCartId(cartId)
+                    && isOwnerByData(resource.data)
+                    && request.resource.data.userId == resource.data.userId
+                    && request.resource.data.cartId == resource.data.cartId;
+      allow delete: if isOwnerCartId(cartId) && isOwnerByData(resource.data);
+    }
+
+    // Customer wishlist/whitelist
+    match /whitelists/{whitelistId} {
+      allow get: if isOwnerWishlistId(whitelistId);
+      allow list: if false;
+      allow create: if isOwnerWishlistId(whitelistId)
+                    && isOwnerByData(request.resource.data)
+                    && request.resource.data.whitelistId == whitelistId;
+      allow update: if isOwnerWishlistId(whitelistId)
+                    && isOwnerByData(resource.data)
+                    && request.resource.data.userId == resource.data.userId
+                    && request.resource.data.whitelistId == resource.data.whitelistId;
+      allow delete: if isOwnerWishlistId(whitelistId) && isOwnerByData(resource.data);
+    }
+
+    // Orders
+    match /orders/{orderId} {
+      allow read: if isOwnerByData(resource.data) || isAdmin();
+      allow create: if isOwnerByData(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
+
+    // Stock audit logs from admin page
+    match /stock_adjustments/{adjustmentId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

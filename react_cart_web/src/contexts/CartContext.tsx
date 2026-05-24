@@ -28,6 +28,17 @@ type CartContextValue = {
 
 const CartContext = createContext<CartContextValue | undefined>(undefined)
 
+function getCartErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error) {
+    const maybeCode = error as Error & { code?: string }
+    if (maybeCode.code === 'permission-denied') {
+      return 'Missing or insufficient permissions. Please update Firestore rules for carts/whitelists.'
+    }
+    return error.message || fallback
+  }
+  return fallback
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const { currentUser } = useAuth()
   const [cart, setCart] = useState<CartDoc | null>(null)
@@ -89,7 +100,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const nextCart = await cartsService.addToCart(currentUser.uid, payload, quantity)
         setCart(nextCart)
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unable to add product to cart.'
+        const message = getCartErrorMessage(err, 'Unable to add product to cart.')
         setError(message)
         throw new Error(message)
       } finally {
@@ -120,7 +131,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         )
         setCart(nextCart)
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unable to update quantity.'
+        const message = getCartErrorMessage(err, 'Unable to update quantity.')
         setError(message)
         throw new Error(message)
       } finally {
@@ -141,8 +152,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setError('')
         const nextCart = await cartsService.removeFromCart(currentUser.uid, productId)
         setCart(nextCart)
-      } catch {
-        setError('Unable to remove cart item.')
+      } catch (err) {
+        setError(getCartErrorMessage(err, 'Unable to remove cart item.'))
       } finally {
         setLoading(false)
       }
@@ -160,8 +171,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setError('')
       await cartsService.clearCart(currentUser.uid)
       setCart(null)
-    } catch {
-      setError('Unable to clear cart.')
+    } catch (err) {
+      setError(getCartErrorMessage(err, 'Unable to clear cart.'))
     } finally {
       setLoading(false)
     }

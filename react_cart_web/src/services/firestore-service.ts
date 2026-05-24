@@ -5,7 +5,6 @@ import {
   getDoc,
   getDocs,
   deleteDoc,
-  orderBy,
   query,
   runTransaction,
   serverTimestamp,
@@ -653,17 +652,19 @@ export const whitelistsService = {
 export const ordersService = {
   async getUserOrders(userId: string): Promise<OrderDoc[]> {
     const ordersRef = collection(db, 'orders')
-    const ordersQuery = query(
-      ordersRef,
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc'),
-    )
+    const ordersQuery = query(ordersRef, where('userId', '==', userId))
     const snapshot = await getDocs(ordersQuery)
 
-    return snapshot.docs.map((item) => ({
+    const orders = snapshot.docs.map((item) => ({
       orderId: item.id,
       ...(item.data() as Record<string, unknown>),
     })) as OrderDoc[]
+
+    return orders.sort((left, right) => {
+      const leftMs = left.createdAt?.toDate ? left.createdAt.toDate().getTime() : 0
+      const rightMs = right.createdAt?.toDate ? right.createdAt.toDate().getTime() : 0
+      return rightMs - leftMs
+    })
   },
 
   async getOrder(orderId: string): Promise<OrderDoc | null> {
@@ -680,19 +681,8 @@ export const ordersService = {
   },
 
   async getUserOrdersByStatus(userId: string, status: OrderStatus): Promise<OrderDoc[]> {
-    const ordersRef = collection(db, 'orders')
-    const ordersQuery = query(
-      ordersRef,
-      where('userId', '==', userId),
-      where('status', '==', status),
-      orderBy('createdAt', 'desc'),
-    )
-    const snapshot = await getDocs(ordersQuery)
-
-    return snapshot.docs.map((item) => ({
-      orderId: item.id,
-      ...(item.data() as Record<string, unknown>),
-    })) as OrderDoc[]
+    const orders = await this.getUserOrders(userId)
+    return orders.filter((item) => item.status === status)
   },
 
   async updateOrderStatus(orderId: string, status: OrderStatus, message?: string) {
@@ -791,6 +781,8 @@ export async function processOrder(input: ProcessOrderInput): Promise<ProcessOrd
 
     const orderNumber = `ORD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${orderRef.id.slice(0, 6).toUpperCase()}`
 
+    const normalizedNotes = typeof notes === 'string' ? notes.trim() : ''
+
     const orderPayload: OrderDoc = {
       orderId: orderRef.id,
       userId,
@@ -813,7 +805,7 @@ export async function processOrder(input: ProcessOrderInput): Promise<ProcessOrd
       discountAmount,
       totalAmount,
       currency: 'THB',
-      notes,
+      ...(normalizedNotes ? { notes: normalizedNotes } : {}),
       createdAt: now,
       updatedAt: now,
       estimatedDelivery,
