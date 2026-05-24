@@ -11,7 +11,6 @@ type ProductCardProps = {
 export default function ProductCard({ product, onViewDetail }: ProductCardProps) {
   const { isInWhitelist, toggleWhitelist } = useWhitelist()
   const { addToCart } = useCart()
-  const [quantity, setQuantity] = useState(1)
   const [error, setError] = useState('')
 
   const discountPercent =
@@ -23,18 +22,9 @@ export default function ProductCard({ product, onViewDetail }: ProductCardProps)
   const outOfStock = product.stock <= 0
 
   const handleAddToCart = async () => {
-    if (quantity < 1) {
-      setError('จำนวนสินค้าต้องอย่างน้อย 1 ชิ้น')
-      return
-    }
-    if (quantity > product.stock) {
-      setError('จำนวนที่เลือกเกินสต็อกคงเหลือ')
-      return
-    }
-
     try {
       setError('')
-      await addToCart(product, quantity)
+      await addToCart(product, 1)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ไม่สามารถเพิ่มลงตะกร้าได้')
     }
@@ -94,15 +84,9 @@ export default function ProductCard({ product, onViewDetail }: ProductCardProps)
         </div>
 
         <div className="flex items-center gap-2">
-          <input
-            type="number"
-            min={1}
-            max={Math.max(1, product.stock)}
-            value={quantity}
-            disabled={outOfStock}
-            onChange={(event) => setQuantity(Number(event.target.value))}
-            className="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
-          />
+          <p className="w-20 text-xs font-medium text-slate-600">
+            คงเหลือ {Math.max(0, product.stock)}
+          </p>
           <button
             type="button"
             onClick={handleAddToCart}

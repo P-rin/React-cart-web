@@ -11,6 +11,7 @@ import {
   productsService,
   type Product,
   type ProductInput,
+  type StockAdjustmentInput,
 } from '../services/firestore-service'
 
 type ProductContextValue = {
@@ -28,6 +29,9 @@ type ProductContextValue = {
   clearSelectedProduct: () => void
   createProduct: (input: ProductInput) => Promise<string>
   updateProduct: (productId: string, input: ProductInput) => Promise<void>
+  softDeleteProduct: (productId: string) => Promise<void>
+  restoreProduct: (productId: string) => Promise<void>
+  adjustProductStock: (input: StockAdjustmentInput) => Promise<number>
 }
 
 const ProductContext = createContext<ProductContextValue | undefined>(undefined)
@@ -113,6 +117,49 @@ export function ProductProvider({ children }: { children: ReactNode }) {
     }
   }, [fetchProducts])
 
+  const softDeleteProduct = useCallback(async (productId: string) => {
+    try {
+      setLoading(true)
+      setError('')
+      await productsService.softDeleteProduct(productId)
+      await fetchProducts({ includeInactive: true })
+    } catch {
+      setError('Unable to hide product.')
+      throw new Error('Unable to hide product.')
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchProducts])
+
+  const restoreProduct = useCallback(async (productId: string) => {
+    try {
+      setLoading(true)
+      setError('')
+      await productsService.restoreProduct(productId)
+      await fetchProducts({ includeInactive: true })
+    } catch {
+      setError('Unable to restore product.')
+      throw new Error('Unable to restore product.')
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchProducts])
+
+  const adjustProductStock = useCallback(async (input: StockAdjustmentInput) => {
+    try {
+      setLoading(true)
+      setError('')
+      const nextStock = await productsService.adjustProductStock(input)
+      await fetchProducts({ includeInactive: true })
+      return nextStock
+    } catch {
+      setError('Unable to adjust stock.')
+      throw new Error('Unable to adjust stock.')
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchProducts])
+
   useEffect(() => {
     void fetchProducts()
   }, [fetchProducts])
@@ -133,6 +180,9 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       clearSelectedProduct,
       createProduct,
       updateProduct,
+      softDeleteProduct,
+      restoreProduct,
+      adjustProductStock,
     }),
     [
       products,
@@ -147,6 +197,9 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       clearSelectedProduct,
       createProduct,
       updateProduct,
+      softDeleteProduct,
+      restoreProduct,
+      adjustProductStock,
     ],
   )
 

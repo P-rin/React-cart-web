@@ -54,6 +54,16 @@ export type ProductInput = {
   supplier?: string
 }
 
+export type StockAdjustmentInput = {
+  productId: string
+  adjustment: number
+  reason?: string
+  actor?: {
+    userId?: string
+    email?: string
+  }
+}
+
 const normalizeProductStatus = (value: unknown): ProductStatus => {
   const status = typeof value === 'string' ? value.trim().toLowerCase() : ''
   if (status === 'active' || status === 'inactive' || status === 'discontinued') {
@@ -181,6 +191,61 @@ export const productsService = {
       sku: input.sku,
       supplier: input.supplier ?? '',
       updatedAt: serverTimestamp(),
+    })
+  },
+
+  async softDeleteProduct(productId: string): Promise<void> {
+    const productRef = doc(db, 'products', productId)
+    await updateDoc(productRef, {
+      status: 'inactive',
+      updatedAt: serverTimestamp(),
+    })
+  },
+
+  async restoreProduct(productId: string): Promise<void> {
+    const productRef = doc(db, 'products', productId)
+    await updateDoc(productRef, {
+      status: 'active',
+      updatedAt: serverTimestamp(),
+    })
+  },
+
+  async adjustProductStock(input: StockAdjustmentInput): Promise<number> {
+    const productRef = doc(db, 'products', input.productId)
+
+    return runTransaction(db, async (transaction) => {
+      const snapshot = await transaction.get(productRef)
+      if (!snapshot.exists()) {
+        throw new Error('Product not found')
+      }
+
+      const raw = snapshot.data() as Record<string, unknown>
+      const currentStock = typeof raw.stock === 'number' ? raw.stock : 0
+      const nextStock = currentStock + input.adjustment
+
+      if (nextStock < 0) {
+        throw new Error('Stock cannot be negative')
+      }
+
+      transaction.update(productRef, {
+        stock: nextStock,
+        updatedAt: serverTimestamp(),
+      })
+
+      const adjustmentRef = doc(collection(db, 'stock_adjustments'))
+      transaction.set(adjustmentRef, {
+        adjustmentId: adjustmentRef.id,
+        productId: input.productId,
+        previousStock: currentStock,
+        newStock: nextStock,
+        adjustment: input.adjustment,
+        reason: input.reason?.trim() ?? '',
+        actorUserId: input.actor?.userId ?? '',
+        actorEmail: input.actor?.email ?? '',
+        createdAt: serverTimestamp(),
+      })
+
+      return nextStock
     })
   },
 }

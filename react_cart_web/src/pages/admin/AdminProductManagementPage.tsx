@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useProducts } from '../../contexts/ProductContext'
+import { useAuth } from '../../contexts/AuthContext'
 import type { Product, ProductInput } from '../../services/firestore-service'
 
 const initialForm: ProductInput = {
@@ -19,11 +20,23 @@ const initialForm: ProductInput = {
 }
 
 export default function AdminProductManagementPage() {
-  const { products, loading, error, fetchProducts, createProduct, updateProduct } = useProducts()
+  const {
+    products,
+    loading,
+    error,
+    fetchProducts,
+    createProduct,
+    updateProduct,
+    softDeleteProduct,
+    restoreProduct,
+    adjustProductStock,
+  } = useProducts()
+  const { currentUser } = useAuth()
   const [editingProductId, setEditingProductId] = useState<string | null>(null)
   const [form, setForm] = useState<ProductInput>(initialForm)
   const [specText, setSpecText] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [stockAdjustments, setStockAdjustments] = useState<Record<string, { delta: string; reason: string }>>({})
 
   useEffect(() => {
     void fetchProducts({ includeInactive: true })
@@ -119,7 +132,6 @@ export default function AdminProductManagementPage() {
 
     const payload: ProductInput = {
       ...form,
-      status: 'active',
       images: form.images.map((item) => item.trim()).filter(Boolean),
       specifications: parseSpecs(),
     }
@@ -138,6 +150,74 @@ export default function AdminProductManagementPage() {
     }
   }
 
+  const getAdjustmentDraft = (productId: string) => {
+    return stockAdjustments[productId] ?? { delta: '', reason: '' }
+  }
+
+  const updateAdjustmentDraft = (
+    productId: string,
+    field: 'delta' | 'reason',
+    value: string,
+  ) => {
+    setStockAdjustments((prev) => ({
+      ...prev,
+      [productId]: {
+        ...getAdjustmentDraft(productId),
+        [field]: value,
+      },
+    }))
+  }
+
+  const handleAdjustStock = async (product: Product) => {
+    const draft = getAdjustmentDraft(product.productId)
+    const delta = Number(draft.delta)
+
+    if (!Number.isFinite(delta) || delta === 0) {
+      alert('Please enter a non-zero stock adjustment value.')
+      return
+    }
+
+    try {
+      await adjustProductStock({
+        productId: product.productId,
+        adjustment: Math.trunc(delta),
+        reason: draft.reason,
+        actor: {
+          userId: currentUser?.uid,
+          email: currentUser?.email ?? undefined,
+        },
+      })
+
+      setStockAdjustments((prev) => ({
+        ...prev,
+        [product.productId]: { delta: '', reason: '' },
+      }))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to adjust stock.'
+      alert(message)
+    }
+  }
+
+  const handleSoftDelete = async (product: Product) => {
+    const confirmed = window.confirm(`Hide \"${product.name}\" from storefront?`)
+    if (!confirmed) {
+      return
+    }
+    try {
+      await softDeleteProduct(product.productId)
+    } catch {
+      alert('Unable to hide product.')
+    }
+  }
+
+  const handleRestore = async (product: Product) => {
+    try {
+      await restoreProduct(product.productId)
+    } catch {
+      alert('Unable to restore product.')
+    }
+  }
+
   return (
     <section className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
       <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -151,21 +231,70 @@ export default function AdminProductManagementPage() {
           {products.map((product) => (
             <div
               key={product.productId}
-              className="flex items-center justify-between rounded-xl border border-slate-200 p-3"
+              className="rounded-xl border border-slate-200 p-3"
             >
-              <div>
-                <p className="font-medium text-slate-900">{product.name}</p>
-                <p className="text-xs text-slate-500">
-                  SKU: {product.sku} | Stock: {product.stock}
-                </p>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-medium text-slate-900">{product.name}</p>
+                  <p className="text-xs text-slate-500">
+                    SKU: {product.sku} | Stock: {product.stock}
+                  </p>
+                  <p className="text-xs text-slate-500">Status: {product.status}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleEdit(product)}
+                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100"
+                  >
+                    Edit
+                  </button>
+                  {product.status === 'active' ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleSoftDelete(product)}
+                      className="rounded-lg border border-amber-300 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-50"
+                    >
+                      Hide
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => void handleRestore(product)}
+                      className="rounded-lg border border-emerald-300 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+                    >
+                      Restore
+                    </button>
+                  )}
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => handleEdit(product)}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100"
-              >
-                Edit
-              </button>
+
+              <div className="mt-3 grid gap-2 sm:grid-cols-[120px_1fr_auto]">
+                <input
+                  type="number"
+                  value={getAdjustmentDraft(product.productId).delta}
+                  onChange={(event) =>
+                    updateAdjustmentDraft(product.productId, 'delta', event.target.value)
+                  }
+                  placeholder="+/- Stock"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+                <input
+                  value={getAdjustmentDraft(product.productId).reason}
+                  onChange={(event) =>
+                    updateAdjustmentDraft(product.productId, 'reason', event.target.value)
+                  }
+                  placeholder="Reason (optional)"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => void handleAdjustStock(product)}
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100"
+                >
+                  Apply
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -244,6 +373,20 @@ export default function AdminProductManagementPage() {
               onChange={(event) => setForm((prev) => ({ ...prev, sku: event.target.value }))}
               className="w-full rounded-xl border border-slate-300 px-4 py-2.5"
             />
+            <select
+              value={form.status ?? 'active'}
+              onChange={(event) =>
+                setForm((prev) => ({
+                  ...prev,
+                  status: event.target.value as ProductInput['status'],
+                }))
+              }
+              className="w-full rounded-xl border border-slate-300 px-4 py-2.5"
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="discontinued">Discontinued</option>
+            </select>
           </div>
 
           <div className="space-y-2">
