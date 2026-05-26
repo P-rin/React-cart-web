@@ -70,11 +70,14 @@ export function WhitelistProvider({ children }: { children: ReactNode }) {
       try {
         setLoading(true)
         setError('')
-        const result = await whitelistsService.toggleWhitelist(currentUser.uid, {
+        const payload = {
           productId: product.productId,
           name: product.name,
           price: product.price,
-          image: product.images[0],
+          ...(product.images[0] ? { image: product.images[0] } : {}),
+        }
+        const result = await whitelistsService.toggleWhitelist(currentUser.uid, {
+          ...payload,
         })
         await refreshWhitelist()
         return result.inWhitelist

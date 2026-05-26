@@ -369,6 +369,13 @@ export type ProcessOrderResult = {
   totalAmount: number
 }
 
+export type AdminOrderUpdateInput = {
+  status?: OrderStatus
+  paymentStatus?: PaymentStatus
+  trackingNumber?: string
+  note?: string
+}
+
 function toCartSummary(items: CartItem[]) {
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
   const totalPrice = items.reduce((sum, item) => sum + item.subtotal, 0)
@@ -559,9 +566,9 @@ export const whitelistsService = {
       productId: payload.productId,
       name: payload.name,
       price: payload.price,
-      image: payload.image,
-      notes: payload.notes,
       addedAt: Timestamp.now(),
+      ...(payload.image ? { image: payload.image } : {}),
+      ...(payload.notes ? { notes: payload.notes } : {}),
     }
 
     if (!existing.exists()) {
@@ -650,6 +657,22 @@ export const whitelistsService = {
 }
 
 export const ordersService = {
+  async getAllOrders(): Promise<OrderDoc[]> {
+    const ordersRef = collection(db, 'orders')
+    const snapshot = await getDocs(ordersRef)
+
+    const orders = snapshot.docs.map((item) => ({
+      orderId: item.id,
+      ...(item.data() as Record<string, unknown>),
+    })) as OrderDoc[]
+
+    return orders.sort((left, right) => {
+      const leftMs = left.createdAt?.toDate ? left.createdAt.toDate().getTime() : 0
+      const rightMs = right.createdAt?.toDate ? right.createdAt.toDate().getTime() : 0
+      return rightMs - leftMs
+    })
+  },
+
   async getUserOrders(userId: string): Promise<OrderDoc[]> {
     const ordersRef = collection(db, 'orders')
     const ordersQuery = query(ordersRef, where('userId', '==', userId))
@@ -685,6 +708,55 @@ export const ordersService = {
     return orders.filter((item) => item.status === status)
   },
 
+  async cancelUserPendingOrder(userId: string, orderId: string) {
+    const orderRef = doc(db, 'orders', orderId)
+
+    await runTransaction(db, async (tx) => {
+      const existing = await tx.get(orderRef)
+      if (!existing.exists()) {
+        throw new Error('Order not found')
+      }
+
+      const orderData = existing.data() as OrderDoc
+      if (orderData.userId !== userId) {
+        throw new Error('You do not have permission to cancel this order')
+      }
+
+      if (orderData.status !== 'pending') {
+        throw new Error('Only pending orders can be cancelled')
+      }
+
+      const now = Timestamp.now()
+      const timeline = [...(orderData.timeline ?? [])]
+      timeline.push({
+        status: 'cancelled',
+        timestamp: now,
+        message: 'Cancelled by customer',
+      })
+
+      for (const item of orderData.items ?? []) {
+        const productRef = doc(db, 'products', item.productId)
+        const productSnap = await tx.get(productRef)
+        if (!productSnap.exists()) {
+          continue
+        }
+
+        const productData = productSnap.data() as Product
+        const currentStock = Number(productData.stock ?? 0)
+        tx.update(productRef, {
+          stock: currentStock + item.quantity,
+          updatedAt: now,
+        })
+      }
+
+      tx.update(orderRef, {
+        status: 'cancelled',
+        timeline,
+        updatedAt: now,
+      })
+    })
+  },
+
   async updateOrderStatus(orderId: string, status: OrderStatus, message?: string) {
     const orderRef = doc(db, 'orders', orderId)
     const existing = await getDoc(orderRef)
@@ -704,6 +776,76 @@ export const ordersService = {
       status,
       timeline,
       updatedAt: Timestamp.now(),
+    })
+  },
+
+  async adminUpdateOrder(orderId: string, input: AdminOrderUpdateInput) {
+    const orderRef = doc(db, 'orders', orderId)
+    await runTransaction(db, async (tx) => {
+      const existing = await tx.get(orderRef)
+      if (!existing.exists()) {
+        throw new Error('Order not found')
+      }
+
+      const orderData = existing.data() as OrderDoc
+      const nextStatus = input.status ?? orderData.status
+      const note = input.note?.trim() ?? ''
+      const timeline = [...(orderData.timeline ?? [])]
+      const now = Timestamp.now()
+
+      if (input.status && input.status !== orderData.status) {
+        timeline.push({
+          status: input.status,
+          timestamp: now,
+          message: note || `Admin updated status to ${input.status}`,
+        })
+      } else if (note) {
+        timeline.push({
+          status: nextStatus,
+          timestamp: now,
+          message: note,
+        })
+      }
+
+      const shouldRestock = orderData.status !== 'cancelled' && nextStatus === 'cancelled'
+      if (shouldRestock) {
+        for (const item of orderData.items ?? []) {
+          const productRef = doc(db, 'products', item.productId)
+          const productSnap = await tx.get(productRef)
+          if (!productSnap.exists()) {
+            continue
+          }
+
+          const productData = productSnap.data() as Product
+          const currentStock = Number(productData.stock ?? 0)
+          tx.update(productRef, {
+            stock: currentStock + item.quantity,
+            updatedAt: now,
+          })
+        }
+      }
+
+      const updates: Record<string, unknown> = {
+        updatedAt: now,
+      }
+
+      if (input.status) {
+        updates.status = input.status
+      }
+
+      if (input.paymentStatus) {
+        updates.paymentStatus = input.paymentStatus
+      }
+
+      if (typeof input.trackingNumber === 'string') {
+        updates.trackingNumber = input.trackingNumber.trim()
+      }
+
+      if (timeline.length > (orderData.timeline ?? []).length) {
+        updates.timeline = timeline
+      }
+
+      tx.update(orderRef, updates)
     })
   },
 }

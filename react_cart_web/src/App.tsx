@@ -8,6 +8,8 @@ import ProductDetailPage from './pages/customer/ProductDetailPage'
 import WhitelistPage from './pages/customer/WhitelistPage'
 import CartPage from './pages/customer/CartPage'
 import AdminProductManagementPage from './pages/admin/AdminProductManagementPage'
+import AdminOrderManagementPage from './pages/admin/AdminOrderManagementPage'
+import AdminSalesReportPage from './pages/admin/AdminSalesReportPage'
 import CheckoutPage from './pages/customer/CheckoutPage'
 import OrderSuccessPage from './pages/customer/OrderSuccessPage'
 import OrdersHistoryPage from './pages/customer/OrdersHistoryPage'
@@ -22,6 +24,7 @@ type AppTab =
   | 'order-success'
   | 'profile'
   | 'admin'
+  | 'admin-sales'
 
 function App() {
   const { currentUser, role, loading } = useAuth()
@@ -85,13 +88,22 @@ function App() {
                 Orders
               </button>
               {role === 'admin' ? (
-                <button
-                  type="button"
-                  onClick={() => setAppTab('admin')}
-                  className="rounded-lg border border-brand-500 bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600"
-                >
-                  Admin Products
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setAppTab('admin')}
+                    className="rounded-lg border border-brand-500 bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600"
+                  >
+                    Admin Products
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAppTab('admin-sales')}
+                    className="rounded-lg border border-brand-500 px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
+                  >
+                    Sales Report
+                  </button>
+                </>
               ) : null}
             </nav>
           </header>
@@ -135,9 +147,16 @@ function App() {
             />
           ) : null}
 
-          {appTab === 'orders' ? <OrdersHistoryPage onBackToCatalog={() => setAppTab('catalog')} /> : null}
+          {appTab === 'orders' ? (
+            role === 'admin' ? (
+              <AdminOrderManagementPage />
+            ) : (
+              <OrdersHistoryPage onBackToCatalog={() => setAppTab('catalog')} />
+            )
+          ) : null}
 
           {appTab === 'admin' && role === 'admin' ? <AdminProductManagementPage /> : null}
+          {appTab === 'admin-sales' && role === 'admin' ? <AdminSalesReportPage /> : null}
         </div>
       ) : screen === 'login' ? (
         <LoginPage onSwitchToRegister={() => setScreen('register')} />

@@ -38,6 +38,7 @@ type OrderContextValue = {
   fetchOrdersByStatus: (status: OrderStatus) => Promise<void>
   getOrder: (orderId: string) => Promise<void>
   placeOrder: (payload: PlaceOrderInput) => Promise<ProcessOrderResult>
+  cancelPendingOrder: (orderId: string) => Promise<void>
   clearSelectedOrder: () => void
 }
 
@@ -137,6 +138,28 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     [currentUser, fetchOrders],
   )
 
+  const cancelPendingOrder = useCallback(
+    async (orderId: string) => {
+      if (!currentUser) {
+        throw new Error('Please login before cancelling order')
+      }
+
+      try {
+        setLoading(true)
+        setError('')
+        await ordersService.cancelUserPendingOrder(currentUser.uid, orderId)
+        await fetchOrders()
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unable to cancel order'
+        setError(message)
+        throw new Error(message)
+      } finally {
+        setLoading(false)
+      }
+    },
+    [currentUser, fetchOrders],
+  )
+
   const clearSelectedOrder = useCallback(() => {
     setSelectedOrder(null)
   }, [])
@@ -155,6 +178,7 @@ export function OrderProvider({ children }: { children: ReactNode }) {
       fetchOrdersByStatus,
       getOrder,
       placeOrder,
+      cancelPendingOrder,
       clearSelectedOrder,
     }),
     [
@@ -166,6 +190,7 @@ export function OrderProvider({ children }: { children: ReactNode }) {
       fetchOrdersByStatus,
       getOrder,
       placeOrder,
+      cancelPendingOrder,
       clearSelectedOrder,
     ],
   )

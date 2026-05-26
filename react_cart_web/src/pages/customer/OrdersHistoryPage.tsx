@@ -28,9 +28,10 @@ function matchesFilter(order: OrderDoc, tab: FilterTab) {
 }
 
 export default function OrdersHistoryPage({ onBackToCatalog }: OrdersHistoryPageProps) {
-  const { orders, loading, error } = useOrders()
+  const { orders, loading, error, cancelPendingOrder } = useOrders()
   const [tab, setTab] = useState<FilterTab>('all')
   const [selectedOrderId, setSelectedOrderId] = useState<string>('')
+  const [cancellingOrderId, setCancellingOrderId] = useState<string>('')
 
   const filteredOrders = useMemo(
     () => orders.filter((order) => matchesFilter(order, tab)),
@@ -40,6 +41,22 @@ export default function OrdersHistoryPage({ onBackToCatalog }: OrdersHistoryPage
   const selectedOrder = useMemo(() => {
     return filteredOrders.find((order) => order.orderId === selectedOrderId) ?? filteredOrders[0] ?? null
   }, [filteredOrders, selectedOrderId])
+
+  const handleCancelOrder = async (order: OrderDoc) => {
+    const confirmed = window.confirm(`ยืนยันยกเลิกคำสั่งซื้อ ${order.orderNumber} ?`)
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      setCancellingOrderId(order.orderId)
+      await cancelPendingOrder(order.orderId)
+    } catch {
+      alert('ไม่สามารถยกเลิกคำสั่งซื้อได้')
+    } finally {
+      setCancellingOrderId('')
+    }
+  }
 
   return (
     <section className="space-y-4">
@@ -136,6 +153,17 @@ export default function OrdersHistoryPage({ onBackToCatalog }: OrdersHistoryPage
                   </span>
                 </p>
               </div>
+
+              {selectedOrder.status === 'pending' ? (
+                <button
+                  type="button"
+                  onClick={() => void handleCancelOrder(selectedOrder)}
+                  disabled={cancellingOrderId === selectedOrder.orderId}
+                  className="w-full rounded-xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {cancellingOrderId === selectedOrder.orderId ? 'กำลังยกเลิก...' : 'Cancel Order'}
+                </button>
+              ) : null}
 
               <div className="space-y-2 rounded-xl bg-slate-50 p-3">
                 <p className="text-sm font-semibold text-slate-800">รายการสินค้า</p>
