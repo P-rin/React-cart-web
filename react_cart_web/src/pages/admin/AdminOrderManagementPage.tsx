@@ -8,6 +8,7 @@ import {
   type OrderStatus,
   type PaymentStatus,
 } from '../../services/firestore-service'
+import { getOrderStatusLabel, getPaymentStatusLabel } from '../../utils/localization'
 
 type OrderFilter = 'all' | OrderStatus
 
@@ -57,7 +58,7 @@ export default function AdminOrderManagementPage() {
       const data = await ordersService.getAllOrders()
       setOrders(data)
     } catch {
-      setError('Unable to load all orders.')
+      setError('โหลดคำสั่งซื้อไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -140,7 +141,7 @@ export default function AdminOrderManagementPage() {
     }
 
     if (Object.keys(payload).length === 0) {
-      alert('No changes to save.')
+      alert('ไม่มีการเปลี่ยนแปลงให้บันทึก')
       return
     }
 
@@ -156,7 +157,7 @@ export default function AdminOrderManagementPage() {
         },
       }))
     } catch {
-      alert('Unable to update order.')
+      alert('อัปเดตคำสั่งซื้อไม่สำเร็จ')
     } finally {
       setSavingOrderId('')
     }
@@ -165,8 +166,8 @@ export default function AdminOrderManagementPage() {
   if (role !== 'admin') {
     return (
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-900">Orders Management</h1>
-        <p className="mt-2 text-sm text-rose-600">Only admin can access this page.</p>
+        <h1 className="text-2xl font-semibold text-slate-900">จัดการคำสั่งซื้อ</h1>
+        <p className="mt-2 text-sm text-rose-600">หน้านี้สำหรับผู้ดูแลระบบเท่านั้น</p>
       </section>
     )
   }
@@ -175,7 +176,7 @@ export default function AdminOrderManagementPage() {
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900">Orders Maintenance</h1>
+          <h1 className="text-3xl font-semibold text-slate-900">จัดการคำสั่งซื้อ</h1>
           <p className="text-sm text-slate-600">จัดการคำสั่งซื้อของลูกค้า ปรับสถานะ และอัปเดตข้อมูลการจัดส่ง</p>
         </div>
 
@@ -184,7 +185,7 @@ export default function AdminOrderManagementPage() {
           onClick={() => void fetchOrders()}
           className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
         >
-          Refresh
+          โหลดข้อมูลใหม่
         </button>
       </div>
 
@@ -194,10 +195,10 @@ export default function AdminOrderManagementPage() {
           onChange={(event) => setFilter(event.target.value as OrderFilter)}
           className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
         >
-          <option value="all">All Status</option>
+          <option value="all">ทุกสถานะ</option>
           {ORDER_STATUSES.map((status) => (
             <option key={status} value={status}>
-              {status}
+              {getOrderStatusLabel(status)}
             </option>
           ))}
         </select>
@@ -205,17 +206,17 @@ export default function AdminOrderManagementPage() {
         <input
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
-          placeholder="Search by order no, customer name or user id"
+          placeholder="ค้นหาเลขที่คำสั่งซื้อ ชื่อลูกค้า หรือรหัสผู้ใช้"
           className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
         />
       </div>
 
-      {loading ? <p className="text-slate-700">Loading orders...</p> : null}
+      {loading ? <p className="text-slate-700">กำลังโหลดคำสั่งซื้อ...</p> : null}
       {error ? <p className="text-rose-600">{error}</p> : null}
 
       {filteredOrders.length === 0 ? (
         <p className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">
-          No orders found.
+          ไม่พบคำสั่งซื้อ
         </p>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[1fr_420px]">
@@ -237,12 +238,12 @@ export default function AdminOrderManagementPage() {
                     <div>
                       <p className="text-sm text-slate-500">{order.orderNumber}</p>
                       <p className="text-base font-semibold text-slate-900">{order.shippingAddress.fullName}</p>
-                      <p className="text-xs text-slate-500">User ID: {order.userId}</p>
+                      <p className="text-xs text-slate-500">รหัสผู้ใช้: {order.userId}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-base font-semibold text-slate-900">฿{order.totalAmount.toLocaleString()}</p>
-                      <p className="text-xs capitalize text-slate-600">{order.status}</p>
-                      <p className="text-xs capitalize text-slate-500">pay: {order.paymentStatus}</p>
+                      <p className="text-xs text-slate-600">{getOrderStatusLabel(order.status)}</p>
+                      <p className="text-xs text-slate-500">ชำระเงิน: {getPaymentStatusLabel(order.paymentStatus)}</p>
                     </div>
                   </div>
                 </button>
@@ -253,13 +254,13 @@ export default function AdminOrderManagementPage() {
           {selectedOrder ? (
             <aside className="h-fit space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div>
-                <p className="text-xs text-slate-500">Order Number</p>
+                <p className="text-xs text-slate-500">เลขที่คำสั่งซื้อ</p>
                 <p className="text-lg font-semibold text-slate-900">{selectedOrder.orderNumber}</p>
               </div>
 
               <div className="space-y-3 rounded-xl bg-slate-50 p-3">
                 <label className="space-y-1 text-sm text-slate-700">
-                  <span>Status</span>
+                  <span>สถานะคำสั่งซื้อ</span>
                   <select
                     value={(drafts[selectedOrder.orderId] ?? getOrderDraft(selectedOrder)).status}
                     onChange={(event) => updateDraft(selectedOrder.orderId, 'status', event.target.value)}
@@ -267,14 +268,14 @@ export default function AdminOrderManagementPage() {
                   >
                     {ORDER_STATUSES.map((status) => (
                       <option key={status} value={status}>
-                        {status}
+                        {getOrderStatusLabel(status)}
                       </option>
                     ))}
                   </select>
                 </label>
 
                 <label className="space-y-1 text-sm text-slate-700">
-                  <span>Payment Status</span>
+                  <span>สถานะการชำระเงิน</span>
                   <select
                     value={(drafts[selectedOrder.orderId] ?? getOrderDraft(selectedOrder)).paymentStatus}
                     onChange={(event) =>
@@ -284,31 +285,31 @@ export default function AdminOrderManagementPage() {
                   >
                     {PAYMENT_STATUSES.map((status) => (
                       <option key={status} value={status}>
-                        {status}
+                        {getPaymentStatusLabel(status)}
                       </option>
                     ))}
                   </select>
                 </label>
 
                 <label className="space-y-1 text-sm text-slate-700">
-                  <span>Tracking Number</span>
+                  <span>หมายเลขติดตามพัสดุ</span>
                   <input
                     value={(drafts[selectedOrder.orderId] ?? getOrderDraft(selectedOrder)).trackingNumber}
                     onChange={(event) =>
                       updateDraft(selectedOrder.orderId, 'trackingNumber', event.target.value)
                     }
-                    placeholder="Optional"
+                    placeholder="ไม่บังคับ"
                     className="w-full rounded-lg border border-slate-300 px-3 py-2"
                   />
                 </label>
 
                 <label className="space-y-1 text-sm text-slate-700">
-                  <span>Admin Note (timeline)</span>
+                  <span>หมายเหตุผู้ดูแล (แสดงในประวัติสถานะ)</span>
                   <textarea
                     rows={3}
                     value={(drafts[selectedOrder.orderId] ?? getOrderDraft(selectedOrder)).note}
                     onChange={(event) => updateDraft(selectedOrder.orderId, 'note', event.target.value)}
-                    placeholder="Optional"
+                    placeholder="ไม่บังคับ"
                     className="w-full rounded-lg border border-slate-300 px-3 py-2"
                   />
                 </label>
@@ -319,12 +320,12 @@ export default function AdminOrderManagementPage() {
                   onClick={() => void handleSaveOrder(selectedOrder)}
                   className="w-full rounded-lg bg-brand-500 px-4 py-2 font-medium text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-brand-300"
                 >
-                  {savingOrderId === selectedOrder.orderId ? 'Saving...' : 'Save Maintenance Update'}
+                  {savingOrderId === selectedOrder.orderId ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
                 </button>
               </div>
 
               <div className="space-y-2 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
-                <p className="font-semibold text-slate-800">Shipping Address</p>
+                <p className="font-semibold text-slate-800">ที่อยู่จัดส่ง</p>
                 <p>{selectedOrder.shippingAddress.fullName}</p>
                 <p>{selectedOrder.shippingAddress.phone}</p>
                 <p>
@@ -335,7 +336,7 @@ export default function AdminOrderManagementPage() {
               </div>
 
               <div className="space-y-2 rounded-xl bg-slate-50 p-3">
-                <p className="text-sm font-semibold text-slate-800">Items</p>
+                <p className="text-sm font-semibold text-slate-800">รายการสินค้า</p>
                 {selectedOrder.items.map((item) => (
                   <p key={item.productId} className="text-sm text-slate-700">
                     {item.name} x {item.quantity}
@@ -344,7 +345,7 @@ export default function AdminOrderManagementPage() {
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-slate-800">Timeline</p>
+                <p className="text-sm font-semibold text-slate-800">ประวัติสถานะ</p>
                 <OrderTimeline timeline={selectedOrder.timeline ?? []} />
               </div>
             </aside>

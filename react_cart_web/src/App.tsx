@@ -36,7 +36,7 @@ function App() {
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center p-6">
-        <p className="text-slate-700">Checking account session...</p>
+        <p className="text-slate-700">กำลังตรวจสอบสถานะบัญชี...</p>
       </main>
     )
   }
@@ -47,7 +47,7 @@ function App() {
         <div className="mx-auto w-full max-w-6xl space-y-5">
           <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div>
-              <p className="text-sm text-slate-500">Signed in as</p>
+              <p className="text-sm text-slate-500">เข้าสู่ระบบในชื่อ</p>
               <p className="font-semibold text-slate-900">{currentUser.email}</p>
             </div>
 
@@ -57,35 +57,35 @@ function App() {
                 onClick={() => setAppTab('catalog')}
                 className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100"
               >
-                Catalog
+                สินค้าทั้งหมด
               </button>
               <button
                 type="button"
                 onClick={() => setAppTab('profile')}
                 className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100"
               >
-                Profile
+                บัญชีของฉัน
               </button>
               <button
                 type="button"
                 onClick={() => setAppTab('whitelist')}
                 className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100"
               >
-                Wishlist
+                รายการโปรด
               </button>
               <button
                 type="button"
                 onClick={() => setAppTab('cart')}
                 className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100"
               >
-                Cart
+                ตะกร้าสินค้า
               </button>
               <button
                 type="button"
                 onClick={() => setAppTab('orders')}
                 className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100"
               >
-                Orders
+                คำสั่งซื้อ
               </button>
               {role === 'admin' ? (
                 <>
@@ -94,14 +94,14 @@ function App() {
                     onClick={() => setAppTab('admin')}
                     className="rounded-lg border border-brand-500 bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600"
                   >
-                    Admin Products
+                    จัดการสินค้า
                   </button>
                   <button
                     type="button"
                     onClick={() => setAppTab('admin-sales')}
                     className="rounded-lg border border-brand-500 px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
                   >
-                    Sales Report
+                    รายงานยอดขาย
                   </button>
                 </>
               ) : null}

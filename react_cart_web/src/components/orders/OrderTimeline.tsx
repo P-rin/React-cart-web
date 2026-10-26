@@ -1,4 +1,5 @@
 import type { OrderTimelineItem } from '../../services/firestore-service'
+import { getOrderStatusLabel } from '../../utils/localization'
 
 type OrderTimelineProps = {
   timeline: OrderTimelineItem[]
@@ -6,7 +7,7 @@ type OrderTimelineProps = {
 
 export default function OrderTimeline({ timeline }: OrderTimelineProps) {
   if (!timeline.length) {
-    return <p className="text-sm text-slate-500">No timeline updates yet.</p>
+    return <p className="text-sm text-slate-500">ยังไม่มีการอัปเดตสถานะ</p>
   }
 
   return (
@@ -24,11 +25,11 @@ export default function OrderTimeline({ timeline }: OrderTimelineProps) {
               <span className="absolute left-[5px] top-4 h-8 w-[2px] bg-slate-200" />
             ) : null}
 
-            <p className="text-sm font-semibold capitalize text-slate-900">{item.status}</p>
+            <p className="text-sm font-semibold text-slate-900">{getOrderStatusLabel(item.status)}</p>
             <p className="text-xs text-slate-500">
               {item.timestamp?.toDate
                 ? item.timestamp.toDate().toLocaleString('th-TH')
-                : 'Unknown date'}
+                : 'ไม่ทราบวันที่'}
             </p>
             {item.message ? <p className="text-sm text-slate-600">{item.message}</p> : null}
           </li>

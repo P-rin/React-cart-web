@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useProducts } from '../../contexts/ProductContext'
 import { useWhitelist } from '../../contexts/WhitelistContext'
 import { useCart } from '../../contexts/CartContext'
+import { getSpecificationLabel } from '../../utils/localization'
 
 type ProductDetailPageProps = {
   productId: string
@@ -25,10 +26,10 @@ export default function ProductDetailPage({ productId, onBack }: ProductDetailPa
   }, [productId])
 
   const images = useMemo(() => selectedProduct?.images ?? [], [selectedProduct])
-  const selectedImage = images[activeImage] || 'https://placehold.co/800x600?text=No+Image'
+  const selectedImage = images[activeImage] || 'https://placehold.co/800x600?text=%E0%B9%84%E0%B8%A1%E0%B9%88%E0%B8%A1%E0%B8%B5%E0%B8%A3%E0%B8%B9%E0%B8%9B%E0%B8%A0%E0%B8%B2%E0%B8%9E'
 
   if (loading) {
-    return <p className="text-slate-700">Loading product detail...</p>
+    return <p className="text-slate-700">กำลังโหลดรายละเอียดสินค้า...</p>
   }
 
   if (error) {
@@ -94,7 +95,7 @@ export default function ProductDetailPage({ productId, onBack }: ProductDetailPa
                   activeImage === index ? 'border-brand-500' : 'border-slate-200'
                 }`}
               >
-                <img src={image} alt={`product-${index + 1}`} className="h-full w-full object-cover" />
+                <img src={image} alt={`รูปสินค้า ${index + 1}`} className="h-full w-full object-cover" />
               </button>
             ))}
           </div>
@@ -105,11 +106,11 @@ export default function ProductDetailPage({ productId, onBack }: ProductDetailPa
           <p className="text-slate-600">{selectedProduct.description}</p>
 
           <div className="rounded-xl bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-slate-900">Specifications</p>
+            <p className="text-sm font-semibold text-slate-900">รายละเอียดสินค้า</p>
             <div className="mt-2 space-y-1 text-sm text-slate-700">
               {Object.entries(selectedProduct.specifications || {}).map(([key, value]) => (
                 <p key={key}>
-                  <span className="font-medium capitalize">{key}:</span> {value}
+                  <span className="font-medium">{getSpecificationLabel(key)}:</span> {value}
                 </p>
               ))}
             </div>

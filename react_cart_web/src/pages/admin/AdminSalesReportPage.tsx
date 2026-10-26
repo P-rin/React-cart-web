@@ -3,6 +3,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { useAuth } from '../../contexts/AuthContext'
 import { ordersService, type OrderDoc } from '../../services/firestore-service'
+import { getOrderStatusLabel, getPaymentStatusLabel } from '../../utils/localization'
 
 type SalesMetrics = {
   totalOrders: number
@@ -42,7 +43,7 @@ function formatMonthLabel(monthKey: string): string {
   const [year, month] = monthKey.split('-')
   const index = Number(month) - 1
   const date = new Date(Number(year), index, 1)
-  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  return date.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })
 }
 
 function formatCurrency(amount: number): string {
@@ -69,7 +70,7 @@ export default function AdminSalesReportPage() {
       const data = await ordersService.getAllOrders()
       setOrders(data)
     } catch {
-      setError('Unable to load sales report.')
+      setError('โหลดรายงานยอดขายไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -175,8 +176,8 @@ export default function AdminSalesReportPage() {
   if (role !== 'admin') {
     return (
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-900">Sales Report</h1>
-        <p className="mt-2 text-sm text-rose-600">Only admin can access this page.</p>
+        <h1 className="text-2xl font-semibold text-slate-900">รายงานยอดขาย</h1>
+        <p className="mt-2 text-sm text-rose-600">หน้านี้สำหรับผู้ดูแลระบบเท่านั้น</p>
       </section>
     )
   }
@@ -185,13 +186,13 @@ export default function AdminSalesReportPage() {
     <section className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900">Sales Summary Report</h1>
+          <h1 className="text-3xl font-semibold text-slate-900">สรุปรายงานยอดขาย</h1>
           <p className="text-sm text-slate-600">ดูยอดขายรายเดือน และส่งออกรายงานเป็น PDF</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <label className="text-sm text-slate-700">
-            <span className="mr-2">Filter Month</span>
+            <span className="mr-2">เลือกเดือน</span>
             <input
               type="month"
               value={monthFilter}
@@ -214,7 +215,7 @@ export default function AdminSalesReportPage() {
             onClick={() => setMonthFilter('')}
             className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100"
           >
-            Clear
+            ล้างตัวกรอง
           </button>
 
           <button
@@ -223,7 +224,7 @@ export default function AdminSalesReportPage() {
             disabled={filteredOrders.length === 0}
             className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-brand-300"
           >
-            Export PDF
+            ส่งออกรายงาน PDF
           </button>
 
           <button
@@ -231,42 +232,42 @@ export default function AdminSalesReportPage() {
             onClick={() => void fetchOrders()}
             className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100"
           >
-            Refresh
+            โหลดข้อมูลใหม่
           </button>
         </div>
       </div>
 
-      {loading ? <p className="text-slate-700">Loading report...</p> : null}
+      {loading ? <p className="text-slate-700">กำลังโหลดรายงาน...</p> : null}
       {error ? <p className="text-rose-600">{error}</p> : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-slate-500">Total Orders</p>
+          <p className="text-sm text-slate-500">คำสั่งซื้อทั้งหมด</p>
           <p className="mt-1 text-2xl font-semibold text-slate-900">{metrics.totalOrders}</p>
         </article>
 
         <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-slate-500">Gross Sales</p>
+          <p className="text-sm text-slate-500">ยอดขายรวม</p>
           <p className="mt-1 text-2xl font-semibold text-emerald-700">{formatCurrency(metrics.grossSales)}</p>
         </article>
 
         <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-slate-500">Net Sales</p>
+          <p className="text-sm text-slate-500">ยอดขายสุทธิ</p>
           <p className="mt-1 text-2xl font-semibold text-cyan-700">{formatCurrency(metrics.netSales)}</p>
         </article>
 
         <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-slate-500">Completed Orders</p>
+          <p className="text-sm text-slate-500">คำสั่งซื้อที่สำเร็จ</p>
           <p className="mt-1 text-2xl font-semibold text-slate-900">{metrics.completedOrders}</p>
         </article>
 
         <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-slate-500">Refunded Amount</p>
+          <p className="text-sm text-slate-500">ยอดเงินที่คืน</p>
           <p className="mt-1 text-2xl font-semibold text-rose-700">{formatCurrency(metrics.refundedAmount)}</p>
         </article>
 
         <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-slate-500">Average Order Value</p>
+          <p className="text-sm text-slate-500">ยอดสั่งซื้อเฉลี่ย</p>
           <p className="mt-1 text-2xl font-semibold text-slate-900">{formatCurrency(metrics.averageOrderValue)}</p>
         </article>
       </div>
@@ -277,22 +278,22 @@ export default function AdminSalesReportPage() {
             <thead className="bg-slate-50">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Order No
+                  เลขที่คำสั่งซื้อ
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Date
+                  วันที่
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Customer
+                  ลูกค้า
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Status
+                  สถานะ
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Payment
+                  การชำระเงิน
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Total
+                  ยอดรวม
                 </th>
               </tr>
             </thead>
@@ -300,7 +301,7 @@ export default function AdminSalesReportPage() {
               {filteredOrders.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
-                    No orders found for selected month.
+                    ไม่พบคำสั่งซื้อในเดือนที่เลือก
                   </td>
                 </tr>
               ) : (
@@ -313,8 +314,8 @@ export default function AdminSalesReportPage() {
                         {createdAt ? createdAt.toLocaleDateString('th-TH') : '-'}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-700">{order.shippingAddress.fullName}</td>
-                      <td className="px-4 py-3 text-sm capitalize text-slate-700">{order.status}</td>
-                      <td className="px-4 py-3 text-sm capitalize text-slate-700">{order.paymentStatus}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700">{getOrderStatusLabel(order.status)}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700">{getPaymentStatusLabel(order.paymentStatus)}</td>
                       <td className="px-4 py-3 text-right text-sm font-semibold text-slate-900">
                         {formatCurrency(order.totalAmount)}
                       </td>

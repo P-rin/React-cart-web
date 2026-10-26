@@ -46,7 +46,7 @@ export default function ProductCard({ product, onViewDetail }: ProductCardProps)
         className="relative block aspect-square w-full overflow-hidden bg-slate-100"
       >
         <img
-          src={product.images[0] || 'https://placehold.co/500x500?text=No+Image'}
+          src={product.images[0] || 'https://placehold.co/500x500?text=%E0%B9%84%E0%B8%A1%E0%B9%88%E0%B8%A1%E0%B8%B5%E0%B8%A3%E0%B8%B9%E0%B8%9B%E0%B8%A0%E0%B8%B2%E0%B8%9E'}
           alt={product.name}
           className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
         />
@@ -66,7 +66,7 @@ export default function ProductCard({ product, onViewDetail }: ProductCardProps)
             className={`rounded-full px-2 py-1 text-lg leading-none ${
               inWhitelist ? 'text-rose-600' : 'text-slate-400 hover:text-rose-500'
             }`}
-            aria-label="Toggle whitelist"
+            aria-label="เพิ่มหรือลบรายการโปรด"
           >
             {inWhitelist ? '❤' : '♡'}
           </button>

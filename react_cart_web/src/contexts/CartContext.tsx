@@ -32,7 +32,7 @@ function getCartErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error) {
     const maybeCode = error as Error & { code?: string }
     if (maybeCode.code === 'permission-denied') {
-      return 'Missing or insufficient permissions. Please update Firestore rules for carts/whitelists.'
+      return 'ไม่มีสิทธิ์เข้าถึงข้อมูล กรุณาตรวจสอบกฎ Firestore สำหรับตะกร้าสินค้าและรายการโปรด'
     }
     return error.message || fallback
   }
@@ -57,7 +57,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const data = await cartsService.getCart(currentUser.uid)
       setCart(data)
     } catch {
-      setError('Unable to load cart data.')
+      setError('โหลดข้อมูลตะกร้าสินค้าไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -70,18 +70,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addToCart = useCallback(
     async (product: Product, quantity: number) => {
       if (!currentUser) {
-        throw new Error('Please login before adding products to cart.')
+        throw new Error('กรุณาเข้าสู่ระบบก่อนเพิ่มสินค้าลงตะกร้า')
       }
 
       const existingQty =
         cart?.items.find((item) => item.productId === product.productId)?.quantity ?? 0
 
       if (quantity <= 0) {
-        throw new Error('Quantity must be at least 1')
+        throw new Error('จำนวนสินค้าต้องอย่างน้อย 1 ชิ้น')
       }
 
       if (existingQty + quantity > product.stock) {
-        throw new Error('Requested quantity exceeds available stock')
+        throw new Error('จำนวนสินค้าที่เลือกเกินจำนวนคงเหลือ')
       }
 
       const payload: CartItemInput & { stock: number } = {
@@ -100,7 +100,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const nextCart = await cartsService.addToCart(currentUser.uid, payload, quantity)
         setCart(nextCart)
       } catch (err) {
-        const message = getCartErrorMessage(err, 'Unable to add product to cart.')
+        const message = getCartErrorMessage(err, 'ไม่สามารถเพิ่มสินค้าลงตะกร้าได้')
         setError(message)
         throw new Error(message)
       } finally {
@@ -113,11 +113,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const updateQuantity = useCallback(
     async (productId: string, quantity: number, stock?: number) => {
       if (!currentUser) {
-        throw new Error('Please login before editing cart.')
+        throw new Error('กรุณาเข้าสู่ระบบก่อนแก้ไขตะกร้าสินค้า')
       }
 
       if (stock !== undefined && quantity > stock) {
-        throw new Error('Requested quantity exceeds available stock')
+        throw new Error('จำนวนสินค้าที่เลือกเกินจำนวนคงเหลือ')
       }
 
       try {
@@ -131,7 +131,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         )
         setCart(nextCart)
       } catch (err) {
-        const message = getCartErrorMessage(err, 'Unable to update quantity.')
+        const message = getCartErrorMessage(err, 'ไม่สามารถอัปเดตจำนวนสินค้าได้')
         setError(message)
         throw new Error(message)
       } finally {
@@ -144,7 +144,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const removeFromCart = useCallback(
     async (productId: string) => {
       if (!currentUser) {
-        throw new Error('Please login before editing cart.')
+        throw new Error('กรุณาเข้าสู่ระบบก่อนแก้ไขตะกร้าสินค้า')
       }
 
       try {
@@ -153,7 +153,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const nextCart = await cartsService.removeFromCart(currentUser.uid, productId)
         setCart(nextCart)
       } catch (err) {
-        setError(getCartErrorMessage(err, 'Unable to remove cart item.'))
+        setError(getCartErrorMessage(err, 'ไม่สามารถนำสินค้าออกจากตะกร้าได้'))
       } finally {
         setLoading(false)
       }
@@ -163,7 +163,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = useCallback(async () => {
     if (!currentUser) {
-      throw new Error('Please login before editing cart.')
+      throw new Error('กรุณาเข้าสู่ระบบก่อนแก้ไขตะกร้าสินค้า')
     }
 
     try {
@@ -172,7 +172,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       await cartsService.clearCart(currentUser.uid)
       setCart(null)
     } catch (err) {
-      setError(getCartErrorMessage(err, 'Unable to clear cart.'))
+      setError(getCartErrorMessage(err, 'ไม่สามารถล้างตะกร้าสินค้าได้'))
     } finally {
       setLoading(false)
     }

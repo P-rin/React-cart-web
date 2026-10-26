@@ -27,7 +27,7 @@ export default function ProductListingPage({ onOpenDetail }: ProductListingPageP
   return (
     <section className="space-y-4">
       <div className="space-y-1">
-        <h1 className="text-3xl font-semibold text-slate-900">Product Catalog</h1>
+        <h1 className="text-3xl font-semibold text-slate-900">เลือกซื้อสินค้า</h1>
         <p className="text-sm text-slate-600">เลือกสินค้าที่ใช่สำหรับคุณ</p>
       </div>
 
@@ -39,7 +39,7 @@ export default function ProductListingPage({ onOpenDetail }: ProductListingPageP
         onCategoryChange={setSelectedCategory}
       />
 
-      {loading ? <p className="text-slate-700">Loading products...</p> : null}
+      {loading ? <p className="text-slate-700">กำลังโหลดสินค้า...</p> : null}
       {error ? <p className="text-red-600">{error}</p> : null}
 
       {!loading && products.length === 0 ? (

@@ -23,7 +23,7 @@ export default function CartItemRow({
   return (
     <article className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[96px_1fr_auto] md:items-center">
       <img
-        src={item.image || 'https://placehold.co/300x300?text=No+Image'}
+        src={item.image || 'https://placehold.co/300x300?text=%E0%B9%84%E0%B8%A1%E0%B9%88%E0%B8%A1%E0%B8%B5%E0%B8%A3%E0%B8%B9%E0%B8%9B%E0%B8%A0%E0%B8%B2%E0%B8%9E'}
         alt={item.name}
         className="h-24 w-24 rounded-xl object-cover"
       />
@@ -32,7 +32,7 @@ export default function CartItemRow({
         <p className="font-semibold text-slate-900">{item.name}</p>
         <p className="text-sm text-slate-500">฿{item.price.toLocaleString()} ต่อชิ้น</p>
         {typeof stock === 'number' ? (
-          <p className="text-xs text-slate-500">Stock: {stock}</p>
+          <p className="text-xs text-slate-500">สินค้าคงเหลือ: {stock}</p>
         ) : null}
         {error ? <p className="text-xs text-rose-600">{error}</p> : null}
       </div>
@@ -65,7 +65,7 @@ export default function CartItemRow({
           onClick={onRemove}
           className="text-xs font-medium text-rose-600 hover:text-rose-700"
         >
-          Remove
+          ลบสินค้า
         </button>
       </div>
     </article>

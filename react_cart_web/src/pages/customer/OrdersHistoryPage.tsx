@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import OrderTimeline from '../../components/orders/OrderTimeline'
 import { useOrders } from '../../contexts/OrderContext'
 import type { OrderDoc } from '../../services/firestore-service'
+import { getOrderStatusLabel, getPaymentStatusLabel } from '../../utils/localization'
 
 type OrdersHistoryPageProps = {
   onBackToCatalog: () => void
@@ -63,7 +64,7 @@ export default function OrdersHistoryPage({ onBackToCatalog }: OrdersHistoryPage
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">ประวัติคำสั่งซื้อ</h1>
-          <p className="text-sm text-slate-600">ติดตามสถานะการสั่งซื้อและตรวจสอบรายละเอียดแต่ละออเดอร์</p>
+          <p className="text-sm text-slate-600">ติดตามสถานะและตรวจสอบรายละเอียดคำสั่งซื้อ</p>
         </div>
 
         <button
@@ -92,7 +93,7 @@ export default function OrdersHistoryPage({ onBackToCatalog }: OrdersHistoryPage
         ))}
       </div>
 
-      {loading ? <p className="text-slate-700">Loading orders...</p> : null}
+      {loading ? <p className="text-slate-700">กำลังโหลดคำสั่งซื้อ...</p> : null}
       {error ? <p className="text-rose-600">{error}</p> : null}
 
       {filteredOrders.length === 0 ? (
@@ -119,11 +120,11 @@ export default function OrdersHistoryPage({ onBackToCatalog }: OrdersHistoryPage
                   <p className="text-base font-semibold text-slate-900">
                     ฿{order.totalAmount.toLocaleString()}
                   </p>
-                  <p className="mt-1 text-sm capitalize text-slate-700">สถานะ: {order.status}</p>
+                  <p className="mt-1 text-sm text-slate-700">สถานะ: {getOrderStatusLabel(order.status)}</p>
                   <p className="text-xs text-slate-500">
                     {order.createdAt?.toDate
                       ? order.createdAt.toDate().toLocaleString('th-TH')
-                      : 'Unknown date'}
+                      : 'ไม่ทราบวันที่'}
                   </p>
                 </button>
               )
@@ -133,21 +134,21 @@ export default function OrdersHistoryPage({ onBackToCatalog }: OrdersHistoryPage
           {selectedOrder ? (
             <aside className="h-fit space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div>
-                <p className="text-xs text-slate-500">Order Number</p>
+                <p className="text-xs text-slate-500">เลขที่คำสั่งซื้อ</p>
                 <p className="text-lg font-semibold text-slate-900">{selectedOrder.orderNumber}</p>
               </div>
 
               <div className="space-y-1 text-sm text-slate-700">
                 <p className="flex items-center justify-between">
-                  <span>Payment</span>
-                  <span className="capitalize">{selectedOrder.paymentStatus}</span>
+                  <span>การชำระเงิน</span>
+                  <span>{getPaymentStatusLabel(selectedOrder.paymentStatus)}</span>
                 </p>
                 <p className="flex items-center justify-between">
-                  <span>Status</span>
-                  <span className="capitalize">{selectedOrder.status}</span>
+                  <span>สถานะ</span>
+                  <span>{getOrderStatusLabel(selectedOrder.status)}</span>
                 </p>
                 <p className="flex items-center justify-between">
-                  <span>Total</span>
+                  <span>ยอดรวม</span>
                   <span className="font-semibold text-slate-900">
                     ฿{selectedOrder.totalAmount.toLocaleString()}
                   </span>
@@ -161,7 +162,7 @@ export default function OrdersHistoryPage({ onBackToCatalog }: OrdersHistoryPage
                   disabled={cancellingOrderId === selectedOrder.orderId}
                   className="w-full rounded-xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {cancellingOrderId === selectedOrder.orderId ? 'กำลังยกเลิก...' : 'Cancel Order'}
+                  {cancellingOrderId === selectedOrder.orderId ? 'กำลังยกเลิก...' : 'ยกเลิกคำสั่งซื้อ'}
                 </button>
               ) : null}
 
@@ -186,7 +187,7 @@ export default function OrdersHistoryPage({ onBackToCatalog }: OrdersHistoryPage
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-slate-800">Timeline</p>
+                <p className="text-sm font-semibold text-slate-800">ประวัติสถานะ</p>
                 <OrderTimeline timeline={selectedOrder.timeline ?? []} />
               </div>
             </aside>

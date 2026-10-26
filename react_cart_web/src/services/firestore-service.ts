@@ -215,7 +215,7 @@ export const productsService = {
     return runTransaction(db, async (transaction) => {
       const snapshot = await transaction.get(productRef)
       if (!snapshot.exists()) {
-        throw new Error('Product not found')
+        throw new Error('ไม่พบสินค้า')
       }
 
       const raw = snapshot.data() as Record<string, unknown>
@@ -223,7 +223,7 @@ export const productsService = {
       const nextStock = currentStock + input.adjustment
 
       if (nextStock < 0) {
-        throw new Error('Stock cannot be negative')
+        throw new Error('จำนวนสินค้าคงเหลือต้องไม่ติดลบ')
       }
 
       transaction.update(productRef, {
@@ -394,7 +394,7 @@ export const cartsService = {
 
   async addToCart(userId: string, product: CartItemInput, quantity = 1) {
     if (quantity <= 0) {
-      throw new Error('Quantity must be at least 1')
+      throw new Error('จำนวนสินค้าต้องอย่างน้อย 1 ชิ้น')
     }
 
     const cartRef = doc(db, 'carts', `cart_${userId}`)
@@ -415,7 +415,7 @@ export const cartsService = {
 
     if (!existingCart.exists()) {
       if (quantity > availableStock) {
-        throw new Error('Cannot add quantity greater than available stock')
+        throw new Error('จำนวนสินค้าที่เลือกเกินจำนวนคงเหลือ')
       }
 
       const summary = toCartSummary([newItem])
@@ -439,14 +439,14 @@ export const cartsService = {
       const target = cartData.items[itemIndex]
       const nextQuantity = target.quantity + quantity
       if (nextQuantity > availableStock) {
-        throw new Error('Cannot add quantity greater than available stock')
+        throw new Error('จำนวนสินค้าที่เลือกเกินจำนวนคงเหลือ')
       }
 
       target.quantity = nextQuantity
       target.subtotal = target.price * target.quantity
     } else {
       if (quantity > availableStock) {
-        throw new Error('Cannot add quantity greater than available stock')
+        throw new Error('จำนวนสินค้าที่เลือกเกินจำนวนคงเหลือ')
       }
       cartData.items.push(newItem)
     }
@@ -472,21 +472,21 @@ export const cartsService = {
     const cartRef = doc(db, 'carts', `cart_${userId}`)
     const existingCart = await getDoc(cartRef)
     if (!existingCart.exists()) {
-      throw new Error('Cart not found')
+      throw new Error('ไม่พบตะกร้าสินค้า')
     }
 
     if (quantity < 1) {
-      throw new Error('Quantity must be at least 1')
+      throw new Error('จำนวนสินค้าต้องอย่างน้อย 1 ชิ้น')
     }
 
     const cartData = existingCart.data() as CartDoc
     const itemIndex = cartData.items.findIndex((item) => item.productId === productId)
     if (itemIndex < 0) {
-      throw new Error('Cart item not found')
+      throw new Error('ไม่พบสินค้าในตะกร้า')
     }
 
     if (typeof stock === 'number' && quantity > stock) {
-      throw new Error('Cannot set quantity greater than available stock')
+      throw new Error('จำนวนสินค้าที่เลือกเกินจำนวนคงเหลือ')
     }
 
     const target = cartData.items[itemIndex]
@@ -714,16 +714,16 @@ export const ordersService = {
     await runTransaction(db, async (tx) => {
       const existing = await tx.get(orderRef)
       if (!existing.exists()) {
-        throw new Error('Order not found')
+        throw new Error('ไม่พบคำสั่งซื้อ')
       }
 
       const orderData = existing.data() as OrderDoc
       if (orderData.userId !== userId) {
-        throw new Error('You do not have permission to cancel this order')
+        throw new Error('คุณไม่มีสิทธิ์ยกเลิกคำสั่งซื้อนี้')
       }
 
       if (orderData.status !== 'pending') {
-        throw new Error('Only pending orders can be cancelled')
+        throw new Error('ยกเลิกได้เฉพาะคำสั่งซื้อที่รอดำเนินการ')
       }
 
       const now = Timestamp.now()
@@ -761,7 +761,7 @@ export const ordersService = {
     const orderRef = doc(db, 'orders', orderId)
     const existing = await getDoc(orderRef)
     if (!existing.exists()) {
-      throw new Error('Order not found')
+      throw new Error('ไม่พบคำสั่งซื้อ')
     }
 
     const orderData = existing.data() as OrderDoc
@@ -784,7 +784,7 @@ export const ordersService = {
     await runTransaction(db, async (tx) => {
       const existing = await tx.get(orderRef)
       if (!existing.exists()) {
-        throw new Error('Order not found')
+        throw new Error('ไม่พบคำสั่งซื้อ')
       }
 
       const orderData = existing.data() as OrderDoc
@@ -868,26 +868,26 @@ export async function processOrder(input: ProcessOrderInput): Promise<ProcessOrd
   return runTransaction(db, async (tx) => {
     const cartSnap = await tx.get(cartRef)
     if (!cartSnap.exists()) {
-      throw new Error('Cart is empty or not found')
+      throw new Error('ตะกร้าว่างเปล่าหรือไม่พบตะกร้าสินค้า')
     }
 
     const cartData = cartSnap.data() as CartDoc
     const cartItems = cartData.items ?? []
     if (cartItems.length === 0) {
-      throw new Error('Cart is empty')
+      throw new Error('ตะกร้าสินค้าว่างเปล่า')
     }
 
     for (const item of cartItems) {
       const productRef = doc(db, 'products', item.productId)
       const productSnap = await tx.get(productRef)
       if (!productSnap.exists()) {
-        throw new Error(`Product not found: ${item.productId}`)
+        throw new Error(`ไม่พบสินค้า: ${item.productId}`)
       }
 
       const productData = productSnap.data() as Product
       const availableStock = Number(productData.stock ?? 0)
       if (availableStock < item.quantity) {
-        throw new Error(`Stock is not enough for ${item.name}`)
+        throw new Error(`สินค้า ${item.name} มีจำนวนคงเหลือไม่เพียงพอ`)
       }
 
       tx.update(productRef, {

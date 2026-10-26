@@ -44,7 +44,7 @@ export function WhitelistProvider({ children }: { children: ReactNode }) {
       const data = await whitelistsService.getWhitelist(currentUser.uid)
       setWhitelist(data)
     } catch {
-      setError('Unable to load whitelist data.')
+      setError('โหลดรายการโปรดไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -64,7 +64,7 @@ export function WhitelistProvider({ children }: { children: ReactNode }) {
   const toggleWhitelist = useCallback(
     async (product: Product) => {
       if (!currentUser) {
-        throw new Error('Please login before updating whitelist.')
+        throw new Error('กรุณาเข้าสู่ระบบก่อนจัดการรายการโปรด')
       }
 
       try {
@@ -82,7 +82,7 @@ export function WhitelistProvider({ children }: { children: ReactNode }) {
         await refreshWhitelist()
         return result.inWhitelist
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unable to update whitelist.'
+        const message = err instanceof Error ? err.message : 'ไม่สามารถอัปเดตรายการโปรดได้'
         setError(message)
         throw new Error(message)
       } finally {
@@ -95,7 +95,7 @@ export function WhitelistProvider({ children }: { children: ReactNode }) {
   const removeFromWhitelist = useCallback(
     async (productId: string) => {
       if (!currentUser) {
-        throw new Error('Please login before updating whitelist.')
+        throw new Error('กรุณาเข้าสู่ระบบก่อนจัดการรายการโปรด')
       }
 
       try {
@@ -104,7 +104,7 @@ export function WhitelistProvider({ children }: { children: ReactNode }) {
         await whitelistsService.removeFromWhitelist(currentUser.uid, productId)
         await refreshWhitelist()
       } catch {
-        setError('Unable to remove product from whitelist.')
+        setError('ไม่สามารถนำสินค้าออกจากรายการโปรดได้')
       } finally {
         setLoading(false)
       }

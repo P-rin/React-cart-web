@@ -63,7 +63,7 @@ export function OrderProvider({ children }: { children: ReactNode }) {
       const data = await ordersService.getUserOrders(currentUser.uid)
       setOrders(data)
     } catch {
-      setError('Unable to load orders.')
+      setError('โหลดคำสั่งซื้อไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -82,7 +82,7 @@ export function OrderProvider({ children }: { children: ReactNode }) {
         const data = await ordersService.getUserOrdersByStatus(currentUser.uid, status)
         setOrders(data)
       } catch {
-        setError('Unable to load orders by status.')
+        setError('โหลดคำสั่งซื้อตามสถานะไม่สำเร็จ')
       } finally {
         setLoading(false)
       }
@@ -97,7 +97,7 @@ export function OrderProvider({ children }: { children: ReactNode }) {
       const data = await ordersService.getOrder(orderId)
       setSelectedOrder(data)
     } catch {
-      setError('Unable to load order detail.')
+      setError('โหลดรายละเอียดคำสั่งซื้อไม่สำเร็จ')
       setSelectedOrder(null)
     } finally {
       setLoading(false)
@@ -107,7 +107,7 @@ export function OrderProvider({ children }: { children: ReactNode }) {
   const placeOrder = useCallback(
     async (payload: PlaceOrderInput) => {
       if (!currentUser) {
-        throw new Error('Please login before placing order')
+        throw new Error('กรุณาเข้าสู่ระบบก่อนสั่งซื้อ')
       }
 
       try {
@@ -128,7 +128,7 @@ export function OrderProvider({ children }: { children: ReactNode }) {
         await fetchOrders()
         return result
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unable to place order'
+        const message = err instanceof Error ? err.message : 'ไม่สามารถยืนยันคำสั่งซื้อได้'
         setError(message)
         throw new Error(message)
       } finally {
@@ -141,7 +141,7 @@ export function OrderProvider({ children }: { children: ReactNode }) {
   const cancelPendingOrder = useCallback(
     async (orderId: string) => {
       if (!currentUser) {
-        throw new Error('Please login before cancelling order')
+        throw new Error('กรุณาเข้าสู่ระบบก่อนยกเลิกคำสั่งซื้อ')
       }
 
       try {
@@ -150,7 +150,7 @@ export function OrderProvider({ children }: { children: ReactNode }) {
         await ordersService.cancelUserPendingOrder(currentUser.uid, orderId)
         await fetchOrders()
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unable to cancel order'
+        const message = err instanceof Error ? err.message : 'ไม่สามารถยกเลิกคำสั่งซื้อได้'
         setError(message)
         throw new Error(message)
       } finally {

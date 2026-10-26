@@ -62,7 +62,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
         setProducts(data)
       } catch (err) {
         console.error('fetchProducts failed:', err)
-        setError('Unable to load products.')
+        setError('โหลดสินค้าไม่สำเร็จ')
       } finally {
         setLoading(false)
       }
@@ -77,7 +77,7 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       const data = await productsService.getProductById(productId)
       setSelectedProduct(data)
     } catch {
-      setError('Unable to load product detail.')
+      setError('โหลดรายละเอียดสินค้าไม่สำเร็จ')
       setSelectedProduct(null)
     } finally {
       setLoading(false)
@@ -96,8 +96,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       await fetchProducts({ includeInactive: true })
       return productId
     } catch {
-      setError('Unable to create product.')
-      throw new Error('Unable to create product.')
+      setError('เพิ่มสินค้าไม่สำเร็จ')
+      throw new Error('เพิ่มสินค้าไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -110,8 +110,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       await productsService.updateProduct(productId, input)
       await fetchProducts({ includeInactive: true })
     } catch {
-      setError('Unable to update product.')
-      throw new Error('Unable to update product.')
+      setError('อัปเดตสินค้าไม่สำเร็จ')
+      throw new Error('อัปเดตสินค้าไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -124,8 +124,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       await productsService.softDeleteProduct(productId)
       await fetchProducts({ includeInactive: true })
     } catch {
-      setError('Unable to hide product.')
-      throw new Error('Unable to hide product.')
+      setError('ซ่อนสินค้าไม่สำเร็จ')
+      throw new Error('ซ่อนสินค้าไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -138,8 +138,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       await productsService.restoreProduct(productId)
       await fetchProducts({ includeInactive: true })
     } catch {
-      setError('Unable to restore product.')
-      throw new Error('Unable to restore product.')
+      setError('กู้คืนสินค้าไม่สำเร็จ')
+      throw new Error('กู้คืนสินค้าไม่สำเร็จ')
     } finally {
       setLoading(false)
     }
@@ -153,8 +153,8 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       await fetchProducts({ includeInactive: true })
       return nextStock
     } catch {
-      setError('Unable to adjust stock.')
-      throw new Error('Unable to adjust stock.')
+      setError('ปรับจำนวนสินค้าไม่สำเร็จ')
+      throw new Error('ปรับจำนวนสินค้าไม่สำเร็จ')
     } finally {
       setLoading(false)
     }

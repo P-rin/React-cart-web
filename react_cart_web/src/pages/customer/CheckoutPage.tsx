@@ -27,7 +27,7 @@ export default function CheckoutPage({ onSuccess, onBackToCart }: CheckoutPagePr
     district: userProfile?.address?.district ?? '',
     province: userProfile?.address?.province ?? '',
     postalCode: userProfile?.address?.postalCode ?? '',
-    country: userProfile?.address?.country ?? 'Thailand',
+    country: userProfile?.address?.country ?? 'ประเทศไทย',
   })
 
   const subtotal = cart?.totalPrice ?? 0
@@ -95,7 +95,7 @@ export default function CheckoutPage({ onSuccess, onBackToCart }: CheckoutPagePr
         className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
       >
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold text-slate-900">Checkout</h1>
+          <h1 className="text-2xl font-semibold text-slate-900">ยืนยันคำสั่งซื้อ</h1>
           <p className="text-sm text-slate-600">ตรวจสอบที่อยู่จัดส่งและเลือกวิธีชำระเงิน</p>
         </div>
 
@@ -173,7 +173,7 @@ export default function CheckoutPage({ onSuccess, onBackToCart }: CheckoutPagePr
               checked={paymentMethod === 'bank_transfer'}
               onChange={() => setPaymentMethod('bank_transfer')}
             />
-            <span>Bank Transfer</span>
+            <span>โอนเงินผ่านธนาคาร</span>
           </label>
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input
@@ -181,7 +181,7 @@ export default function CheckoutPage({ onSuccess, onBackToCart }: CheckoutPagePr
               checked={paymentMethod === 'credit_card'}
               onChange={() => setPaymentMethod('credit_card')}
             />
-            <span>Credit Card (mock)</span>
+            <span>บัตรเครดิต</span>
           </label>
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input
@@ -189,7 +189,7 @@ export default function CheckoutPage({ onSuccess, onBackToCart }: CheckoutPagePr
               checked={paymentMethod === 'cash_on_delivery'}
               onChange={() => setPaymentMethod('cash_on_delivery')}
             />
-            <span>Cash on Delivery</span>
+            <span>ชำระเงินปลายทาง</span>
           </label>
         </div>
 
@@ -225,7 +225,7 @@ export default function CheckoutPage({ onSuccess, onBackToCart }: CheckoutPagePr
       </form>
 
       <aside className="h-fit space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Order Summary</h2>
+        <h2 className="text-lg font-semibold text-slate-900">สรุปคำสั่งซื้อ</h2>
 
         <div className="max-h-72 space-y-2 overflow-auto pr-1 text-sm text-slate-700">
           {cart?.items.map((item) => (
@@ -240,23 +240,23 @@ export default function CheckoutPage({ onSuccess, onBackToCart }: CheckoutPagePr
 
         <div className="space-y-1 border-t border-slate-200 pt-2 text-sm text-slate-700">
           <p className="flex items-center justify-between">
-            <span>Subtotal</span>
+            <span>ยอดรวมสินค้า</span>
             <span>฿{subtotal.toLocaleString()}</span>
           </p>
           <p className="flex items-center justify-between">
-            <span>Shipping</span>
+            <span>ค่าจัดส่ง</span>
             <span>฿{shippingCost.toLocaleString()}</span>
           </p>
           <p className="flex items-center justify-between">
-            <span>Tax (7%)</span>
+            <span>ภาษี (7%)</span>
             <span>฿{tax.toLocaleString()}</span>
           </p>
           <p className="flex items-center justify-between">
-            <span>Discount</span>
+            <span>ส่วนลด</span>
             <span>-฿{discountAmount.toLocaleString()}</span>
           </p>
           <p className="flex items-center justify-between border-t border-slate-200 pt-2 text-base font-semibold text-slate-900">
-            <span>Total</span>
+            <span>ยอดสุทธิ</span>
             <span>฿{total.toLocaleString()}</span>
           </p>
         </div>

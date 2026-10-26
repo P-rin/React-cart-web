@@ -30,10 +30,11 @@ export default function ProductFilters({
       >
         {categories.map((category) => (
           <option key={category} value={category}>
-            {category === 'all' ? 'ทุกหมวดหมู่' : category}
+            {category === 'all' ? 'ทุกหมวดหมู่' : getCategoryLabel(category)}
           </option>
         ))}
       </select>
     </section>
   )
 }
+import { getCategoryLabel } from '../../utils/localization'

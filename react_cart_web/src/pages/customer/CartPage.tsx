@@ -57,7 +57,7 @@ export default function CartPage({ onProceedCheckout }: CartPageProps) {
       const stock = stockMap.get(productId)
       await updateQuantity(productId, nextQty, stock)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unable to update quantity'
+      const message = err instanceof Error ? err.message : 'ไม่สามารถอัปเดตจำนวนสินค้าได้'
       setRowError((prev) => ({ ...prev, [productId]: message }))
     }
   }
@@ -73,7 +73,7 @@ export default function CartPage({ onProceedCheckout }: CartPageProps) {
         <p className="text-sm text-slate-600">จัดการสินค้าและตรวจสอบยอดชำระ</p>
       </div>
 
-      {loading ? <p className="text-slate-700">Loading cart...</p> : null}
+      {loading ? <p className="text-slate-700">กำลังโหลดตะกร้าสินค้า...</p> : null}
       {error ? <p className="text-rose-600">{error}</p> : null}
 
       {items.length === 0 ? (
@@ -100,14 +100,14 @@ export default function CartPage({ onProceedCheckout }: CartPageProps) {
           </div>
 
           <aside className="h-fit space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900">Cart Summary</h2>
+            <h2 className="text-lg font-semibold text-slate-900">สรุปคำสั่งซื้อ</h2>
             <div className="space-y-2 text-sm text-slate-700">
               <p className="flex items-center justify-between">
-                <span>Total Items</span>
+                <span>จำนวนสินค้าทั้งหมด</span>
                 <span className="font-semibold">{totalItems}</span>
               </p>
               <p className="flex items-center justify-between border-t border-slate-200 pt-2 text-base font-semibold text-slate-900">
-                <span>Total Price</span>
+                <span>ยอดรวม</span>
                 <span>฿{totalPrice.toLocaleString()}</span>
               </p>
             </div>
@@ -117,7 +117,7 @@ export default function CartPage({ onProceedCheckout }: CartPageProps) {
               onClick={onProceedCheckout}
               className="w-full rounded-xl bg-brand-500 px-4 py-2.5 font-medium text-white transition hover:bg-brand-600"
             >
-              Proceed to Checkout
+              ดำเนินการชำระเงิน
             </button>
           </aside>
         </div>

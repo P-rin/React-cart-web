@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useProducts } from '../../contexts/ProductContext'
 import { useAuth } from '../../contexts/AuthContext'
 import type { Product, ProductInput } from '../../services/firestore-service'
+import { getProductStatusLabel } from '../../utils/localization'
 
 const initialForm: ProductInput = {
   name: '',
@@ -42,7 +43,7 @@ export default function AdminProductManagementPage() {
     void fetchProducts({ includeInactive: true })
   }, [fetchProducts])
 
-  const heading = useMemo(() => (editingProductId ? 'Edit Product' : 'Add Product'), [editingProductId])
+  const heading = useMemo(() => (editingProductId ? 'แก้ไขสินค้า' : 'เพิ่มสินค้า'), [editingProductId])
 
   const handleEdit = (product: Product) => {
     setEditingProductId(product.productId)
@@ -111,13 +112,13 @@ export default function AdminProductManagementPage() {
 
   const validate = () => {
     if (!form.name || !form.description || !form.category || !form.sku) {
-      return 'Please fill all required fields.'
+      return 'กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน'
     }
     if (form.price < 0 || form.stock < 0) {
-      return 'Price and stock must be zero or greater.'
+      return 'ราคาและจำนวนสินค้าคงเหลือต้องไม่ต่ำกว่า 0'
     }
     if (!form.images.filter((item) => item.trim()).length) {
-      return 'Please provide at least one image URL.'
+      return 'กรุณาระบุ URL รูปภาพอย่างน้อย 1 รูป'
     }
     return ''
   }
@@ -173,7 +174,7 @@ export default function AdminProductManagementPage() {
     const delta = Number(draft.delta)
 
     if (!Number.isFinite(delta) || delta === 0) {
-      alert('Please enter a non-zero stock adjustment value.')
+      alert('กรุณาระบุจำนวนสินค้าที่ต้องการปรับ โดยต้องไม่เป็น 0')
       return
     }
 
@@ -193,20 +194,20 @@ export default function AdminProductManagementPage() {
         [product.productId]: { delta: '', reason: '' },
       }))
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unable to adjust stock.'
+      const message = err instanceof Error ? err.message : 'ปรับจำนวนสินค้าไม่สำเร็จ'
       alert(message)
     }
   }
 
   const handleSoftDelete = async (product: Product) => {
-    const confirmed = window.confirm(`Hide \"${product.name}\" from storefront?`)
+    const confirmed = window.confirm(`ซ่อนสินค้า "${product.name}" จากหน้าร้านใช่หรือไม่?`)
     if (!confirmed) {
       return
     }
     try {
       await softDeleteProduct(product.productId)
     } catch {
-      alert('Unable to hide product.')
+      alert('ซ่อนสินค้าไม่สำเร็จ')
     }
   }
 
@@ -214,17 +215,17 @@ export default function AdminProductManagementPage() {
     try {
       await restoreProduct(product.productId)
     } catch {
-      alert('Unable to restore product.')
+      alert('กู้คืนสินค้าไม่สำเร็จ')
     }
   }
 
   return (
     <section className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
       <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900">Products</h2>
+        <h2 className="text-xl font-semibold text-slate-900">รายการสินค้า</h2>
         <p className="mt-1 text-sm text-slate-600">เลือกสินค้าเพื่อแก้ไข หรือเพิ่มสินค้าใหม่</p>
 
-        {loading ? <p className="mt-4 text-slate-700">Loading products...</p> : null}
+        {loading ? <p className="mt-4 text-slate-700">กำลังโหลดสินค้า...</p> : null}
         {error ? <p className="mt-4 text-red-600">{error}</p> : null}
 
         <div className="mt-4 space-y-3">
@@ -237,9 +238,9 @@ export default function AdminProductManagementPage() {
                 <div>
                   <p className="font-medium text-slate-900">{product.name}</p>
                   <p className="text-xs text-slate-500">
-                    SKU: {product.sku} | Stock: {product.stock}
+                    รหัสสินค้า: {product.sku} | คงเหลือ: {product.stock}
                   </p>
-                  <p className="text-xs text-slate-500">Status: {product.status}</p>
+                  <p className="text-xs text-slate-500">สถานะ: {getProductStatusLabel(product.status)}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -247,7 +248,7 @@ export default function AdminProductManagementPage() {
                     onClick={() => handleEdit(product)}
                     className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100"
                   >
-                    Edit
+                    แก้ไข
                   </button>
                   {product.status === 'active' ? (
                     <button
@@ -255,7 +256,7 @@ export default function AdminProductManagementPage() {
                       onClick={() => void handleSoftDelete(product)}
                       className="rounded-lg border border-amber-300 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-50"
                     >
-                      Hide
+                      ซ่อน
                     </button>
                   ) : (
                     <button
@@ -263,7 +264,7 @@ export default function AdminProductManagementPage() {
                       onClick={() => void handleRestore(product)}
                       className="rounded-lg border border-emerald-300 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
                     >
-                      Restore
+                      กู้คืน
                     </button>
                   )}
                 </div>
@@ -276,7 +277,7 @@ export default function AdminProductManagementPage() {
                   onChange={(event) =>
                     updateAdjustmentDraft(product.productId, 'delta', event.target.value)
                   }
-                  placeholder="+/- Stock"
+                  placeholder="+/- จำนวนสินค้า"
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 />
                 <input
@@ -284,7 +285,7 @@ export default function AdminProductManagementPage() {
                   onChange={(event) =>
                     updateAdjustmentDraft(product.productId, 'reason', event.target.value)
                   }
-                  placeholder="Reason (optional)"
+                  placeholder="เหตุผล (ไม่บังคับ)"
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 />
                 <button
@@ -292,7 +293,7 @@ export default function AdminProductManagementPage() {
                   onClick={() => void handleAdjustStock(product)}
                   className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-100"
                 >
-                  Apply
+                  ปรับจำนวน
                 </button>
               </div>
             </div>
@@ -309,20 +310,20 @@ export default function AdminProductManagementPage() {
               onClick={resetForm}
               className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100"
             >
-              Clear
+              ล้างข้อมูล
             </button>
           ) : null}
         </div>
 
         <form className="space-y-3" onSubmit={handleSubmit}>
           <input
-            placeholder="Name*"
+            placeholder="ชื่อสินค้า*"
             value={form.name}
             onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
             className="w-full rounded-xl border border-slate-300 px-4 py-2.5"
           />
           <textarea
-            placeholder="Description*"
+            placeholder="รายละเอียดสินค้า*"
             value={form.description}
             onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
             className="min-h-24 w-full rounded-xl border border-slate-300 px-4 py-2.5"
@@ -330,27 +331,27 @@ export default function AdminProductManagementPage() {
 
           <div className="grid gap-3 sm:grid-cols-2">
             <input
-              placeholder="Category*"
+              placeholder="หมวดหมู่*"
               value={form.category}
               onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value }))}
               className="w-full rounded-xl border border-slate-300 px-4 py-2.5"
             />
             <input
-              placeholder="Subcategory"
+              placeholder="หมวดหมู่ย่อย"
               value={form.subcategory}
               onChange={(event) => setForm((prev) => ({ ...prev, subcategory: event.target.value }))}
               className="w-full rounded-xl border border-slate-300 px-4 py-2.5"
             />
             <input
               type="number"
-              placeholder="Price*"
+              placeholder="ราคา*"
               value={form.price}
               onChange={(event) => setForm((prev) => ({ ...prev, price: Number(event.target.value) }))}
               className="w-full rounded-xl border border-slate-300 px-4 py-2.5"
             />
             <input
               type="number"
-              placeholder="Original Price"
+              placeholder="ราคาเดิม"
               value={form.originalPrice ?? ''}
               onChange={(event) =>
                 setForm((prev) => ({
@@ -362,13 +363,13 @@ export default function AdminProductManagementPage() {
             />
             <input
               type="number"
-              placeholder="Stock*"
+              placeholder="จำนวนสินค้าคงเหลือ*"
               value={form.stock}
               onChange={(event) => setForm((prev) => ({ ...prev, stock: Number(event.target.value) }))}
               className="w-full rounded-xl border border-slate-300 px-4 py-2.5"
             />
             <input
-              placeholder="SKU*"
+              placeholder="รหัสสินค้า*"
               value={form.sku}
               onChange={(event) => setForm((prev) => ({ ...prev, sku: event.target.value }))}
               className="w-full rounded-xl border border-slate-300 px-4 py-2.5"
@@ -383,20 +384,20 @@ export default function AdminProductManagementPage() {
               }
               className="w-full rounded-xl border border-slate-300 px-4 py-2.5"
             >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="discontinued">Discontinued</option>
+              <option value="active">พร้อมจำหน่าย</option>
+              <option value="inactive">ปิดใช้งาน</option>
+              <option value="discontinued">เลิกจำหน่าย</option>
             </select>
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-700">Image URLs*</p>
+            <p className="text-sm font-medium text-slate-700">URL รูปภาพ*</p>
             {form.images.map((image, index) => (
               <div key={index} className="flex gap-2">
                 <input
                   value={image}
                   onChange={(event) => handleImageChange(index, event.target.value)}
-                  placeholder={`Image URL ${index + 1}`}
+                  placeholder={`URL รูปภาพ ${index + 1}`}
                   className="w-full rounded-xl border border-slate-300 px-4 py-2.5"
                 />
                 <button
@@ -404,7 +405,7 @@ export default function AdminProductManagementPage() {
                   onClick={() => removeImageField(index)}
                   className="rounded-xl border border-slate-300 px-3 text-sm"
                 >
-                  Remove
+                  ลบ
                 </button>
               </div>
             ))}
@@ -413,14 +414,14 @@ export default function AdminProductManagementPage() {
               onClick={addImageField}
               className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
             >
-              + Add image URL
+              + เพิ่ม URL รูปภาพ
             </button>
           </div>
 
           <textarea
             value={specText}
             onChange={(event) => setSpecText(event.target.value)}
-            placeholder="Specifications (one per line) e.g. color:black"
+            placeholder="รายละเอียดสินค้า (บรรทัดละรายการ) เช่น สี:ดำ"
             className="min-h-24 w-full rounded-xl border border-slate-300 px-4 py-2.5"
           />
 
@@ -429,7 +430,7 @@ export default function AdminProductManagementPage() {
             disabled={submitting}
             className="w-full rounded-xl bg-brand-500 px-4 py-2.5 font-medium text-white hover:bg-brand-600 disabled:opacity-70"
           >
-            {submitting ? 'Saving...' : editingProductId ? 'Update Product' : 'Create Product'}
+            {submitting ? 'กำลังบันทึก...' : editingProductId ? 'บันทึกการแก้ไข' : 'เพิ่มสินค้า'}
           </button>
         </form>
       </article>
