@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import LoginPage from './components/auth/LoginPage'
 import RegisterPage from './components/auth/RegisterPage'
 import ProfilePage from './components/account/ProfilePage'
@@ -13,6 +13,33 @@ import AdminSalesReportPage from './pages/admin/AdminSalesReportPage'
 import CheckoutPage from './pages/customer/CheckoutPage'
 import OrderSuccessPage from './pages/customer/OrderSuccessPage'
 import OrdersHistoryPage from './pages/customer/OrdersHistoryPage'
+import { useCart } from './contexts/CartContext'
+import { productsService } from './services/firestore-service'
+
+const pendingCartItemKey = 'react-cart-web:pending-cart-item'
+
+type PendingCartItem = {
+  productId: string
+  quantity: number
+}
+
+type AppNotice = {
+  message: string
+  isError: boolean
+}
+
+function isPendingCartItem(value: unknown): value is PendingCartItem {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'productId' in value &&
+    typeof value.productId === 'string' &&
+    'quantity' in value &&
+    typeof value.quantity === 'number' &&
+    Number.isInteger(value.quantity) &&
+    value.quantity > 0
+  )
+}
 
 type AppTab =
   | 'catalog'
@@ -27,11 +54,73 @@ type AppTab =
   | 'admin-sales'
 
 function App() {
-  const { currentUser, role, loading } = useAuth()
-  const [screen, setScreen] = useState<'login' | 'register'>('login')
+  const { currentUser, role, loading, authError } = useAuth()
+  const { addToCart } = useCart()
+  const [screen, setScreen] = useState<'browse' | 'login' | 'register'>('browse')
   const [appTab, setAppTab] = useState<AppTab>('catalog')
   const [activeProductId, setActiveProductId] = useState('')
   const [lastOrder, setLastOrder] = useState<{ orderId: string; orderNumber: string; totalAmount: number } | null>(null)
+  const [notice, setNotice] = useState<AppNotice | null>(null)
+  const processedPendingCartItem = useRef(false)
+  const visibleGuestTab = appTab === 'detail' ? 'detail' : 'catalog'
+  const returnToCatalog = () => {
+    sessionStorage.removeItem(pendingCartItemKey)
+    setAppTab('catalog')
+    setScreen('browse')
+  }
+
+  useEffect(() => {
+    if (!currentUser) {
+      processedPendingCartItem.current = false
+      return
+    }
+
+    if (loading || processedPendingCartItem.current) {
+      return
+    }
+
+    const pendingItem = sessionStorage.getItem(pendingCartItemKey)
+    if (!pendingItem) {
+      return
+    }
+
+    processedPendingCartItem.current = true
+    sessionStorage.removeItem(pendingCartItemKey)
+
+    void (async () => {
+      try {
+        if (authError) {
+          throw new Error(authError)
+        }
+        if (role !== 'customer') {
+          throw new Error('การเพิ่มสินค้าลงตะกร้าต้องเข้าสู่ระบบด้วยบัญชี Customer')
+        }
+
+        const item: unknown = JSON.parse(pendingItem)
+        if (!isPendingCartItem(item)) {
+          throw new Error('ข้อมูลสินค้าที่เลือกไม่ถูกต้อง กรุณาเลือกสินค้าใหม่')
+        }
+
+        const product = await productsService.getProductById(item.productId)
+        if (!product || product.status !== 'active') {
+          throw new Error('สินค้านี้ไม่มีจำหน่ายแล้ว')
+        }
+        if (product.stock < item.quantity) {
+          throw new Error('สินค้าเหลือไม่เพียงพอตามจำนวนที่เลือก กรุณาปรับจำนวนใหม่')
+        }
+
+        await addToCart(product, item.quantity)
+        setAppTab('cart')
+        setNotice({ message: 'เพิ่มสินค้าที่เลือกลงตะกร้าแล้ว', isError: false })
+      } catch (error) {
+        setAppTab('catalog')
+        setNotice({
+          message: error instanceof Error ? error.message : 'ไม่สามารถเพิ่มสินค้าลงตะกร้าได้',
+          isError: true,
+        })
+      }
+    })()
+  }, [currentUser, role, loading, authError, addToCart])
 
   if (loading) {
     return (
@@ -108,6 +197,25 @@ function App() {
             </nav>
           </header>
 
+          {authError ? (
+            <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+              {authError}
+            </p>
+          ) : null}
+
+          {notice ? (
+            <p
+              role="status"
+              className={`rounded-xl border p-3 text-sm ${
+                notice.isError
+                  ? 'border-rose-200 bg-rose-50 text-rose-700'
+                  : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              }`}
+            >
+              {notice.message}
+            </p>
+          ) : null}
+
           {appTab === 'catalog' ? (
             <ProductListingPage
               onOpenDetail={(productId) => {
@@ -158,10 +266,100 @@ function App() {
           {appTab === 'admin' && role === 'admin' ? <AdminProductManagementPage /> : null}
           {appTab === 'admin-sales' && role === 'admin' ? <AdminSalesReportPage /> : null}
         </div>
-      ) : screen === 'login' ? (
-        <LoginPage onSwitchToRegister={() => setScreen('register')} />
       ) : (
-        <RegisterPage onSwitchToLogin={() => setScreen('login')} />
+        <div className="mx-auto w-full max-w-6xl space-y-5">
+          <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="font-semibold text-slate-900">เลือกซื้อสินค้าในฐานะ Guest</p>
+            <nav className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={returnToCatalog}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100"
+              >
+                สินค้าทั้งหมด
+              </button>
+              <button
+                type="button"
+                onClick={() => setScreen('login')}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100"
+              >
+                เข้าสู่ระบบ
+              </button>
+              <button
+                type="button"
+                onClick={() => setScreen('register')}
+                className="rounded-lg border border-brand-500 px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
+              >
+                สมัครสมาชิก
+              </button>
+            </nav>
+          </header>
+
+          {notice ? (
+            <p
+              role="status"
+              className={`rounded-xl border p-3 text-sm ${
+                notice.isError
+                  ? 'border-rose-200 bg-rose-50 text-rose-700'
+                  : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              }`}
+            >
+              {notice.message}
+            </p>
+          ) : null}
+
+          {screen === 'login' ? (
+            <LoginPage
+              onSwitchToRegister={() => setScreen('register')}
+              onBrowseCatalog={returnToCatalog}
+            />
+          ) : (
+            screen === 'register' ? (
+              <RegisterPage
+                onSwitchToLogin={() => setScreen('login')}
+                onBrowseCatalog={returnToCatalog}
+              />
+            ) : null
+          )}
+
+          {screen === 'browse' && visibleGuestTab === 'catalog' ? (
+            <ProductListingPage
+              onOpenDetail={(productId) => {
+                setActiveProductId(productId)
+                setAppTab('detail')
+              }}
+              onGuestAddToCart={(productId, quantity) => {
+                sessionStorage.setItem(
+                  pendingCartItemKey,
+                  JSON.stringify({ productId, quantity } satisfies PendingCartItem),
+                )
+                setNotice(null)
+                setScreen('login')
+              }}
+            />
+          ) : null}
+
+          {authError ? (
+            <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+              {authError}
+            </p>
+          ) : null}
+
+          {screen === 'browse' && visibleGuestTab === 'detail' && activeProductId ? (
+            <ProductDetailPage
+              productId={activeProductId}
+              onBack={() => setAppTab('catalog')}
+              onGuestAddToCart={(productId, quantity) => {
+                sessionStorage.setItem(
+                  pendingCartItemKey,
+                  JSON.stringify({ productId, quantity } satisfies PendingCartItem),
+                )
+                setNotice(null)
+                setScreen('login')
+              }}
+            />
+          ) : null}
+        </div>
       )}
     </main>
   )

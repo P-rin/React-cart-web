@@ -32,6 +32,7 @@ type AuthContextValue = {
   userProfile: UserProfile | null
   role: 'customer' | 'admin' | null
   loading: boolean
+  authError: string
   signIn: (email: string, password: string) => Promise<void>
   signUp: (input: {
     email: string
@@ -50,19 +51,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [authError, setAuthError] = useState('')
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setLoading(true)
+      setAuthError('')
       setCurrentUser(user)
 
-      if (user) {
-        const profile = await getUserProfile(user.uid)
-        setUserProfile(profile)
-      } else {
+      try {
+        if (user) {
+          const profile = await getUserProfile(user.uid)
+          setUserProfile(profile)
+        } else {
+          setUserProfile(null)
+        }
+      } catch (error) {
+        console.error('Failed to load authenticated user profile:', error)
         setUserProfile(null)
+        setAuthError('ไม่สามารถโหลดข้อมูลบัญชีได้ กรุณาลองเข้าสู่ระบบอีกครั้ง')
+      } finally {
+        setLoading(false)
       }
-
-      setLoading(false)
     })
 
     return unsubscribe
@@ -133,11 +143,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       userProfile,
       role: userProfile?.role ?? null,
       loading,
+      authError,
       signIn,
       signUp,
       signOutUser,
     }),
-    [currentUser, userProfile, loading, signIn, signUp, signOutUser],
+    [currentUser, userProfile, loading, authError, signIn, signUp, signOutUser],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

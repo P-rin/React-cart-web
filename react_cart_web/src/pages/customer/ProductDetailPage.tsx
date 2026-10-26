@@ -3,16 +3,23 @@ import { useProducts } from '../../contexts/ProductContext'
 import { useWhitelist } from '../../contexts/WhitelistContext'
 import { useCart } from '../../contexts/CartContext'
 import { getSpecificationLabel } from '../../utils/localization'
+import { useAuth } from '../../contexts/AuthContext'
 
 type ProductDetailPageProps = {
   productId: string
   onBack: () => void
+  onGuestAddToCart?: (productId: string, quantity: number) => void
 }
 
-export default function ProductDetailPage({ productId, onBack }: ProductDetailPageProps) {
+export default function ProductDetailPage({
+  productId,
+  onBack,
+  onGuestAddToCart,
+}: ProductDetailPageProps) {
   const { selectedProduct, loading, error, fetchProductById } = useProducts()
   const { isInWhitelist, toggleWhitelist } = useWhitelist()
   const { addToCart } = useCart()
+  const { currentUser } = useAuth()
   const [activeImage, setActiveImage] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [actionError, setActionError] = useState('')
@@ -44,6 +51,10 @@ export default function ProductDetailPage({ productId, onBack }: ProductDetailPa
   const inWhitelist = isInWhitelist(selectedProduct.productId)
 
   const handleToggleWishlist = async () => {
+    if (!currentUser) {
+      return
+    }
+
     try {
       setActionError('')
       await toggleWhitelist(selectedProduct)
@@ -59,6 +70,11 @@ export default function ProductDetailPage({ productId, onBack }: ProductDetailPa
     }
     if (quantity > selectedProduct.stock) {
       setActionError('จำนวนที่เลือกเกินสต็อกคงเหลือ')
+      return
+    }
+
+    if (!currentUser) {
+      onGuestAddToCart?.(selectedProduct.productId, quantity)
       return
     }
 
@@ -122,17 +138,19 @@ export default function ProductDetailPage({ productId, onBack }: ProductDetailPa
           </p>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleToggleWishlist}
-              className={`rounded-xl border px-3 py-2 text-sm font-medium ${
-                inWhitelist
-                  ? 'border-rose-300 bg-rose-50 text-rose-700'
-                  : 'border-slate-300 bg-white text-slate-700'
-              }`}
-            >
-              {inWhitelist ? '❤ อยู่ในรายการโปรด' : '♡ เพิ่มรายการโปรด'}
-            </button>
+            {currentUser ? (
+              <button
+                type="button"
+                onClick={handleToggleWishlist}
+                className={`rounded-xl border px-3 py-2 text-sm font-medium ${
+                  inWhitelist
+                    ? 'border-rose-300 bg-rose-50 text-rose-700'
+                    : 'border-slate-300 bg-white text-slate-700'
+                }`}
+              >
+                {inWhitelist ? '❤ อยู่ในรายการโปรด' : '♡ เพิ่มรายการโปรด'}
+              </button>
+            ) : null}
 
             <input
               type="number"
@@ -151,7 +169,7 @@ export default function ProductDetailPage({ productId, onBack }: ProductDetailPa
             onClick={handleAddToCart}
             className="w-full rounded-xl bg-brand-500 px-4 py-2.5 font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            {hasStock ? 'เพิ่มลงตะกร้า' : 'สินค้าหมด'}
+            {hasStock ? currentUser ? 'เพิ่มลงตะกร้า' : 'เข้าสู่ระบบเพื่อซื้อ' : 'สินค้าหมด'}
           </button>
           {actionError ? <p className="text-sm text-rose-600">{actionError}</p> : null}
         </div>

@@ -2,15 +2,22 @@ import { useState } from 'react'
 import type { Product } from '../../services/firestore-service'
 import { useWhitelist } from '../../contexts/WhitelistContext'
 import { useCart } from '../../contexts/CartContext'
+import { useAuth } from '../../contexts/AuthContext'
 
 type ProductCardProps = {
   product: Product
   onViewDetail: (productId: string) => void
+  onGuestAddToCart?: (productId: string, quantity: number) => void
 }
 
-export default function ProductCard({ product, onViewDetail }: ProductCardProps) {
+export default function ProductCard({
+  product,
+  onViewDetail,
+  onGuestAddToCart,
+}: ProductCardProps) {
   const { isInWhitelist, toggleWhitelist } = useWhitelist()
   const { addToCart } = useCart()
+  const { currentUser } = useAuth()
   const [error, setError] = useState('')
 
   const discountPercent =
@@ -22,6 +29,11 @@ export default function ProductCard({ product, onViewDetail }: ProductCardProps)
   const outOfStock = product.stock <= 0
 
   const handleAddToCart = async () => {
+    if (!currentUser) {
+      onGuestAddToCart?.(product.productId, 1)
+      return
+    }
+
     try {
       setError('')
       await addToCart(product, 1)
@@ -60,16 +72,18 @@ export default function ProductCard({ product, onViewDetail }: ProductCardProps)
       <div className="space-y-2 p-4">
         <div className="flex items-start justify-between gap-2">
           <p className="line-clamp-1 font-semibold text-slate-900">{product.name}</p>
-          <button
-            type="button"
-            onClick={handleToggleWhitelist}
-            className={`rounded-full px-2 py-1 text-lg leading-none ${
-              inWhitelist ? 'text-rose-600' : 'text-slate-400 hover:text-rose-500'
-            }`}
-            aria-label="เพิ่มหรือลบรายการโปรด"
-          >
-            {inWhitelist ? '❤' : '♡'}
-          </button>
+          {currentUser ? (
+            <button
+              type="button"
+              onClick={handleToggleWhitelist}
+              className={`rounded-full px-2 py-1 text-lg leading-none ${
+                inWhitelist ? 'text-rose-600' : 'text-slate-400 hover:text-rose-500'
+              }`}
+              aria-label="เพิ่มหรือลบรายการโปรด"
+            >
+              {inWhitelist ? '❤' : '♡'}
+            </button>
+          ) : null}
         </div>
         <p className="text-sm text-amber-600">
           {'★'.repeat(Math.max(1, Math.round(product.rating || 0)))}
@@ -93,7 +107,7 @@ export default function ProductCard({ product, onViewDetail }: ProductCardProps)
             disabled={outOfStock}
             className="flex-1 rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            {outOfStock ? 'สินค้าหมด' : 'เพิ่มลงตะกร้า'}
+            {outOfStock ? 'สินค้าหมด' : currentUser ? 'เพิ่มลงตะกร้า' : 'เข้าสู่ระบบเพื่อซื้อ'}
           </button>
         </div>
         {error ? <p className="text-xs text-rose-600">{error}</p> : null}

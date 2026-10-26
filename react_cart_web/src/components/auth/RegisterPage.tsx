@@ -3,9 +3,10 @@ import { useAuth } from '../../contexts/AuthContext'
 
 type RegisterPageProps = {
   onSwitchToLogin: () => void
+  onBrowseCatalog: () => void
 }
 
-export default function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
+export default function RegisterPage({ onSwitchToLogin, onBrowseCatalog }: RegisterPageProps) {
   const { signUp } = useAuth()
   const [username, setUsername] = useState('')
   const [firstName, setFirstName] = useState('')
@@ -152,6 +153,13 @@ export default function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
           เข้าสู่ระบบ
         </button>
       </p>
+      <button
+        type="button"
+        onClick={onBrowseCatalog}
+        className="mt-3 text-sm font-semibold text-brand-600 hover:text-brand-700"
+      >
+        กลับไปเลือกชมสินค้า
+      </button>
     </section>
   )
 }

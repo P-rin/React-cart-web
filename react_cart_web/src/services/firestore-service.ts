@@ -137,10 +137,7 @@ export const productsService = {
       return null
     }
 
-    return {
-      ...(snapshot.data() as Omit<Product, 'productId'>),
-      productId: snapshot.id,
-    }
+    return normalizeProduct(snapshot.id, snapshot.data() as Record<string, unknown>)
   },
 
   async createProduct(input: ProductInput): Promise<string> {

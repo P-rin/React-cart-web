@@ -5,9 +5,13 @@ import { useProducts } from '../../contexts/ProductContext'
 
 type ProductListingPageProps = {
   onOpenDetail: (productId: string) => void
+  onGuestAddToCart?: (productId: string, quantity: number) => void
 }
 
-export default function ProductListingPage({ onOpenDetail }: ProductListingPageProps) {
+export default function ProductListingPage({
+  onOpenDetail,
+  onGuestAddToCart,
+}: ProductListingPageProps) {
   const {
     products,
     loading,
@@ -50,7 +54,12 @@ export default function ProductListingPage({ onOpenDetail }: ProductListingPageP
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {products.map((product) => (
-          <ProductCard key={product.productId} product={product} onViewDetail={onOpenDetail} />
+          <ProductCard
+            key={product.productId}
+            product={product}
+            onViewDetail={onOpenDetail}
+            onGuestAddToCart={onGuestAddToCart}
+          />
         ))}
       </div>
     </section>

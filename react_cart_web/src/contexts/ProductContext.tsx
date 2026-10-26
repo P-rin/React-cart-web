@@ -75,6 +75,11 @@ export function ProductProvider({ children }: { children: ReactNode }) {
       setLoading(true)
       setError('')
       const data = await productsService.getProductById(productId)
+      if (data?.status !== 'active') {
+        setSelectedProduct(null)
+        setError('ไม่พบข้อมูลสินค้าหรือสินค้านี้ไม่มีจำหน่ายแล้ว')
+        return
+      }
       setSelectedProduct(data)
     } catch {
       setError('โหลดรายละเอียดสินค้าไม่สำเร็จ')

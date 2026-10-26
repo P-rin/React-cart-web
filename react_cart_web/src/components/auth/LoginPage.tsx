@@ -3,9 +3,10 @@ import { useAuth } from '../../contexts/AuthContext'
 
 type LoginPageProps = {
   onSwitchToRegister: () => void
+  onBrowseCatalog: () => void
 }
 
-export default function LoginPage({ onSwitchToRegister }: LoginPageProps) {
+export default function LoginPage({ onSwitchToRegister, onBrowseCatalog }: LoginPageProps) {
   const { signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -78,6 +79,13 @@ export default function LoginPage({ onSwitchToRegister }: LoginPageProps) {
           สมัครสมาชิก
         </button>
       </p>
+      <button
+        type="button"
+        onClick={onBrowseCatalog}
+        className="mt-3 text-sm font-semibold text-brand-600 hover:text-brand-700"
+      >
+        กลับไปเลือกชมสินค้า
+      </button>
     </section>
   )
 }
