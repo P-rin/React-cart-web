@@ -15,6 +15,7 @@ import OrderSuccessPage from './pages/customer/OrderSuccessPage'
 import OrdersHistoryPage from './pages/customer/OrdersHistoryPage'
 import { useCart } from './contexts/CartContext'
 import { productsService } from './services/firestore-service'
+import StoreLandingPage from './components/StoreLandingPage'
 
 const pendingCartItemKey = 'react-cart-web:pending-cart-item'
 
@@ -42,6 +43,7 @@ function isPendingCartItem(value: unknown): value is PendingCartItem {
 }
 
 type AppTab =
+  | 'landing'
   | 'catalog'
   | 'detail'
   | 'whitelist'
@@ -57,7 +59,7 @@ function App() {
   const { currentUser, role, loading, authError } = useAuth()
   const { addToCart } = useCart()
   const [screen, setScreen] = useState<'browse' | 'login' | 'register'>('browse')
-  const [appTab, setAppTab] = useState<AppTab>('catalog')
+  const [appTab, setAppTab] = useState<AppTab>('landing')
   const [activeProductId, setActiveProductId] = useState('')
   const [lastOrder, setLastOrder] = useState<{ orderId: string; orderNumber: string; totalAmount: number } | null>(null)
   const [notice, setNotice] = useState<AppNotice | null>(null)
@@ -143,6 +145,13 @@ function App() {
             <nav className="flex flex-wrap gap-2">
               <button
                 type="button"
+                onClick={() => setAppTab('landing')}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100"
+              >
+                หน้าแรก
+              </button>
+              <button
+                type="button"
                 onClick={() => setAppTab('catalog')}
                 className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100"
               >
@@ -216,6 +225,14 @@ function App() {
             </p>
           ) : null}
 
+          {appTab === 'landing' ? (
+            <StoreLandingPage
+              onShopNow={() => setAppTab('catalog')}
+              onLogin={() => setAppTab('profile')}
+              accountLabel="บัญชีของฉัน"
+            />
+          ) : null}
+
           {appTab === 'catalog' ? (
             <ProductListingPage
               onOpenDetail={(productId) => {
@@ -268,32 +285,15 @@ function App() {
         </div>
       ) : (
         <div className="mx-auto w-full max-w-6xl space-y-5">
-          <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="font-semibold text-slate-900">เลือกซื้อสินค้าในฐานะ Guest</p>
-            <nav className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={returnToCatalog}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100"
-              >
-                สินค้าทั้งหมด
-              </button>
-              <button
-                type="button"
-                onClick={() => setScreen('login')}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100"
-              >
-                เข้าสู่ระบบ
-              </button>
-              <button
-                type="button"
-                onClick={() => setScreen('register')}
-                className="rounded-lg border border-brand-500 px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50"
-              >
-                สมัครสมาชิก
-              </button>
-            </nav>
-          </header>
+          {screen === 'browse' ? (
+            <StoreLandingPage
+              onShopNow={() => {
+                setAppTab('catalog')
+                window.setTimeout(() => document.getElementById('storefront')?.scrollIntoView({ behavior: 'smooth' }), 0)
+              }}
+              onLogin={() => setScreen('login')}
+            />
+          ) : null}
 
           {notice ? (
             <p
@@ -323,20 +323,22 @@ function App() {
           )}
 
           {screen === 'browse' && visibleGuestTab === 'catalog' ? (
-            <ProductListingPage
-              onOpenDetail={(productId) => {
-                setActiveProductId(productId)
-                setAppTab('detail')
-              }}
-              onGuestAddToCart={(productId, quantity) => {
-                sessionStorage.setItem(
-                  pendingCartItemKey,
-                  JSON.stringify({ productId, quantity } satisfies PendingCartItem),
-                )
-                setNotice(null)
-                setScreen('login')
-              }}
-            />
+            <div id="storefront" className="scroll-mt-6">
+              <ProductListingPage
+                onOpenDetail={(productId) => {
+                  setActiveProductId(productId)
+                  setAppTab('detail')
+                }}
+                onGuestAddToCart={(productId, quantity) => {
+                  sessionStorage.setItem(
+                    pendingCartItemKey,
+                    JSON.stringify({ productId, quantity } satisfies PendingCartItem),
+                  )
+                  setNotice(null)
+                  setScreen('login')
+                }}
+              />
+            </div>
           ) : null}
 
           {authError ? (
